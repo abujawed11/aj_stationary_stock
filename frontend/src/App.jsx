@@ -1,14 +1,10 @@
 
 
 function App() {
-
-
   return (
-
-    <h1 class="text-3xl font-bold underline">
-      Hello world!
-    </h1>
-
+    <div className="text-3xl font-bold text-blue-600 p-8">
+      Tailwind is working
+    </div>
   )
 }
 
