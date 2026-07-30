@@ -12,6 +12,7 @@ import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { selectOnFocus } from "../utils/formHelpers";
 import { formatCurrency, formatDate } from "../utils/currency";
+import { useToast } from "../context/ToastContext";
 
 const PAYMENT_METHODS = ["CASH", "UPI", "BANK_TRANSFER", "OTHER"];
 
@@ -44,6 +45,7 @@ function PaymentStatusBadge({ status }) {
 }
 
 export default function Purchases() {
+  const { showToast } = useToast();
   const [purchases, setPurchases] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(1);
@@ -135,6 +137,7 @@ export default function Purchases() {
         supplierId: values.supplierId || undefined,
       };
       await purchaseApi.create(payload);
+      showToast("Purchase completed successfully");
       setModalOpen(false);
       setPage(1);
       load();
@@ -149,10 +152,15 @@ export default function Purchases() {
   }
 
   async function confirmCancel() {
-    await purchaseApi.cancel(cancelTarget.id);
-    setCancelTarget(null);
-    setDetail(null);
-    load();
+    try {
+      await purchaseApi.cancel(cancelTarget.id);
+      showToast("Purchase cancelled successfully");
+      setCancelTarget(null);
+      setDetail(null);
+      load();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to cancel purchase", "error");
+    }
   }
 
   const columns = [

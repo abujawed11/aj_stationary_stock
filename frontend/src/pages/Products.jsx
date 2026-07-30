@@ -11,6 +11,7 @@ import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
 import { formatCurrency, formatDate } from "../utils/currency";
 import { selectOnFocus } from "../utils/formHelpers";
+import { useToast } from "../context/ToastContext";
 
 const UNITS = ["PIECE", "PACKET", "BOX", "DOZEN", "REAM", "SET", "BOTTLE", "ROLL"];
 
@@ -38,6 +39,7 @@ function stockLabel(product) {
 }
 
 export default function Products() {
+  const { showToast } = useToast();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [meta, setMeta] = useState(null);
@@ -143,9 +145,11 @@ export default function Products() {
       if (editing) {
         delete payload.sku;
         await productApi.update(editing.id, payload);
+        showToast("Product updated");
       } else {
         if (!payload.sku) delete payload.sku;
         await productApi.create(payload);
+        showToast("Product created");
       }
       setModalOpen(false);
       setPage(1);
@@ -156,8 +160,13 @@ export default function Products() {
   }
 
   async function toggleStatus(product) {
-    await productApi.setStatus(product.id, !product.isActive);
-    loadProducts();
+    try {
+      await productApi.setStatus(product.id, !product.isActive);
+      showToast(`Product ${product.isActive ? "deactivated" : "activated"}`);
+      loadProducts();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to update status", "error");
+    }
   }
 
   async function openLedger(product) {
@@ -187,6 +196,7 @@ export default function Products() {
       },
     },
     { key: "status", header: "Status", render: (row) => <StatusBadge active={row.isActive} /> },
+    { key: "updatedAt", header: "Last Updated", render: (row) => formatDate(row.updatedAt) },
     {
       key: "actions",
       header: "Actions",

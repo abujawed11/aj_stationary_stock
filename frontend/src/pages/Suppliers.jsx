@@ -9,6 +9,7 @@ import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
 import { formatCurrency, formatDate } from "../utils/currency";
+import { useToast } from "../context/ToastContext";
 
 const supplierSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -21,6 +22,7 @@ const supplierSchema = z.object({
 });
 
 export default function Suppliers() {
+  const { showToast } = useToast();
   const [suppliers, setSuppliers] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(1);
@@ -86,8 +88,10 @@ export default function Suppliers() {
     try {
       if (editing) {
         await supplierApi.update(editing.id, payload);
+        showToast("Supplier updated");
       } else {
         await supplierApi.create(payload);
+        showToast("Supplier created");
       }
     } catch (err) {
       setFormError(err.response?.data?.message || "Failed to save supplier");
@@ -99,8 +103,13 @@ export default function Suppliers() {
   }
 
   async function toggleStatus(supplier) {
-    await supplierApi.setStatus(supplier.id, !supplier.isActive);
-    load();
+    try {
+      await supplierApi.setStatus(supplier.id, !supplier.isActive);
+      showToast(`Supplier ${supplier.isActive ? "deactivated" : "activated"}`);
+      load();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to update status", "error");
+    }
   }
 
   async function openDetail(supplier) {

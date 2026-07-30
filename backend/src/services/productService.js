@@ -2,7 +2,7 @@ const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { getPagination, buildMeta } = require("../utils/pagination");
 
-const SORTABLE_FIELDS = ["name", "sku", "currentStock", "sellingPrice", "purchasePrice", "createdAt"];
+const SORTABLE_FIELDS = ["name", "sku", "currentStock", "sellingPrice", "purchasePrice", "createdAt", "updatedAt"];
 
 async function generateSku() {
   const count = await prisma.product.count();
@@ -27,8 +27,8 @@ async function list(query) {
     where.isActive = query.isActive === "true";
   }
 
-  const sortBy = SORTABLE_FIELDS.includes(query.sortBy) ? query.sortBy : "name";
-  const sortOrder = query.sortOrder === "desc" ? "desc" : "asc";
+  const sortBy = SORTABLE_FIELDS.includes(query.sortBy) ? query.sortBy : "updatedAt";
+  const sortOrder = query.sortBy ? (query.sortOrder === "desc" ? "desc" : "asc") : "desc";
 
   let items = await prisma.product.findMany({
     where,

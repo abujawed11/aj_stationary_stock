@@ -8,6 +8,7 @@ import Table from "../components/Table";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
+import { useToast } from "../context/ToastContext";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -15,6 +16,7 @@ const categorySchema = z.object({
 });
 
 export default function Categories() {
+  const { showToast } = useToast();
   const [categories, setCategories] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(1);
@@ -70,8 +72,10 @@ export default function Categories() {
     try {
       if (editing) {
         await categoryApi.update(editing.id, values);
+        showToast("Category updated");
       } else {
         await categoryApi.create(values);
+        showToast("Category created");
       }
     } catch (err) {
       setFormError(err.response?.data?.message || "Failed to save category");
@@ -83,8 +87,13 @@ export default function Categories() {
   }
 
   async function toggleStatus(category) {
-    await categoryApi.setStatus(category.id, !category.isActive);
-    load();
+    try {
+      await categoryApi.setStatus(category.id, !category.isActive);
+      showToast(`Category ${category.isActive ? "deactivated" : "activated"}`);
+      load();
+    } catch (err) {
+      showToast(err.response?.data?.message || "Failed to update status", "error");
+    }
   }
 
   const columns = [
