@@ -1,8 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+// Prisma schema for AJ Stationery Stock & Sales Management App
+// Learn more: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -12,4 +9,375 @@ generator client {
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum AdminRole {
+  ADMIN
+}
+
+enum Unit {
+  PIECE
+  PACKET
+  BOX
+  DOZEN
+  REAM
+  SET
+  BOTTLE
+  ROLL
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIALLY_PAID
+  UNPAID
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  OTHER
+}
+
+enum PurchaseStatus {
+  COMPLETED
+  CANCELLED
+}
+
+enum SaleStatus {
+  COMPLETED
+  CANCELLED
+  PARTIALLY_RETURNED
+  RETURNED
+}
+
+enum ItemCondition {
+  GOOD
+  DAMAGED
+}
+
+enum AdjustmentType {
+  OPENING_STOCK
+  DAMAGED
+  LOST
+  PERSONAL_USE
+  FREE_SAMPLE
+  STOCK_CORRECTION
+  OTHER
+}
+
+enum AdjustmentDirection {
+  IN
+  OUT
+}
+
+enum MovementType {
+  PURCHASE
+  SALE
+  SALES_RETURN
+  PURCHASE_REVERSAL
+  SALE_CANCELLATION
+  ADJUSTMENT
+  OPENING_STOCK
+}
+
+enum ExpenseCategory {
+  RENT
+  ELECTRICITY
+  INTERNET
+  TRANSPORT
+  PACKAGING
+  REPAIR
+  FURNITURE
+  SALARY
+  MISCELLANEOUS
+}
+
+// ---------------------------------------------------------------------------
+// Models
+// ---------------------------------------------------------------------------
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         AdminRole @default(ADMIN)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  purchases        Purchase[]        @relation("PurchaseCreatedBy")
+  sales            Sale[]            @relation("SaleCreatedBy")
+  salesReturns     SalesReturn[]     @relation("SalesReturnCreatedBy")
+  stockAdjustments StockAdjustment[] @relation("StockAdjustmentCreatedBy")
+  stockMovements   StockMovement[]   @relation("StockMovementCreatedBy")
+  expenses         Expense[]         @relation("ExpenseCreatedBy")
+
+  @@map("users")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id            Int      @id @default(autoincrement())
+  sku           String   @unique
+  barcode       String?  @unique
+  name          String
+  description   String?  @db.Text
+  categoryId    Int
+  brand         String?
+  unit          Unit
+  purchasePrice Decimal  @db.Decimal(12, 2)
+  sellingPrice  Decimal  @db.Decimal(12, 2)
+  mrp           Decimal? @db.Decimal(12, 2)
+  currentStock  Int      @default(0)
+  minimumStock  Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  category         Category          @relation(fields: [categoryId], references: [id])
+  purchaseItems    PurchaseItem[]
+  saleItems        SaleItem[]
+  salesReturnItems SalesReturnItem[]
+  stockAdjustments StockAdjustment[]
+  stockMovements   StockMovement[]
+
+  @@index([categoryId])
+  @@index([name])
+  @@index([isActive])
+  @@map("products")
+}
+
+model Supplier {
+  id            Int      @id @default(autoincrement())
+  name          String
+  contactPerson String?
+  phone         String?
+  email         String?
+  address       String?  @db.Text
+  gstNumber     String?
+  notes         String?  @db.Text
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  purchases Purchase[]
+
+  @@index([name])
+  @@map("suppliers")
+}
+
+model Purchase {
+  id             Int            @id @default(autoincrement())
+  purchaseNumber String         @unique
+  supplierId     Int?
+  invoiceNumber  String?
+  purchaseDate   DateTime
+  subtotal       Decimal        @db.Decimal(12, 2)
+  discount       Decimal        @default(0) @db.Decimal(12, 2)
+  additionalCost Decimal        @default(0) @db.Decimal(12, 2)
+  totalAmount    Decimal        @db.Decimal(12, 2)
+  paidAmount     Decimal        @default(0) @db.Decimal(12, 2)
+  dueAmount      Decimal        @default(0) @db.Decimal(12, 2)
+  paymentStatus  PaymentStatus  @default(UNPAID)
+  paymentMethod  PaymentMethod
+  status         PurchaseStatus @default(COMPLETED)
+  notes          String?        @db.Text
+  createdById    Int
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  supplier  Supplier?      @relation(fields: [supplierId], references: [id])
+  createdBy User           @relation("PurchaseCreatedBy", fields: [createdById], references: [id])
+  items     PurchaseItem[]
+
+  @@index([supplierId])
+  @@index([purchaseDate])
+  @@index([paymentStatus])
+  @@index([status])
+  @@map("purchases")
+}
+
+model PurchaseItem {
+  id         Int     @id @default(autoincrement())
+  purchaseId Int
+  productId  Int
+  quantity   Int
+  unitCost   Decimal @db.Decimal(12, 2)
+  totalCost  Decimal @db.Decimal(12, 2)
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@index([purchaseId])
+  @@index([productId])
+  @@map("purchase_items")
+}
+
+model Sale {
+  id            Int           @id @default(autoincrement())
+  saleNumber    String        @unique
+  customerName  String?
+  customerPhone String?
+  saleDate      DateTime
+  subtotal      Decimal       @db.Decimal(12, 2)
+  discount      Decimal       @default(0) @db.Decimal(12, 2)
+  totalAmount   Decimal       @db.Decimal(12, 2)
+  paidAmount    Decimal       @default(0) @db.Decimal(12, 2)
+  dueAmount     Decimal       @default(0) @db.Decimal(12, 2)
+  paymentStatus PaymentStatus @default(UNPAID)
+  paymentMethod PaymentMethod
+  status        SaleStatus    @default(COMPLETED)
+  createdById   Int
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  createdBy    User          @relation("SaleCreatedBy", fields: [createdById], references: [id])
+  items        SaleItem[]
+  salesReturns SalesReturn[]
+
+  @@index([saleDate])
+  @@index([paymentStatus])
+  @@index([status])
+  @@map("sales")
+}
+
+model SaleItem {
+  id             Int     @id @default(autoincrement())
+  saleId         Int
+  productId      Int
+  quantity       Int
+  sellingPrice   Decimal @db.Decimal(12, 2)
+  unitCostAtSale Decimal @db.Decimal(12, 2)
+  totalAmount    Decimal @db.Decimal(12, 2)
+  totalCost      Decimal @db.Decimal(12, 2)
+  grossProfit    Decimal @db.Decimal(12, 2)
+
+  sale             Sale              @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product          Product           @relation(fields: [productId], references: [id])
+  salesReturnItems SalesReturnItem[]
+
+  @@index([saleId])
+  @@index([productId])
+  @@map("sale_items")
+}
+
+model SalesReturn {
+  id           Int           @id @default(autoincrement())
+  returnNumber String        @unique
+  saleId       Int
+  returnDate   DateTime
+  totalRefund  Decimal       @db.Decimal(12, 2)
+  refundMethod PaymentMethod
+  reason       String?       @db.Text
+  createdById  Int
+  createdAt    DateTime      @default(now())
+
+  sale      Sale              @relation(fields: [saleId], references: [id])
+  createdBy User              @relation("SalesReturnCreatedBy", fields: [createdById], references: [id])
+  items     SalesReturnItem[]
+
+  @@index([saleId])
+  @@map("sales_returns")
+}
+
+model SalesReturnItem {
+  id            Int           @id @default(autoincrement())
+  salesReturnId Int
+  saleItemId    Int
+  productId     Int
+  quantity      Int
+  refundAmount  Decimal       @db.Decimal(12, 2)
+  returnToStock Boolean       @default(false)
+  condition     ItemCondition @default(GOOD)
+
+  salesReturn SalesReturn @relation(fields: [salesReturnId], references: [id], onDelete: Cascade)
+  saleItem    SaleItem    @relation(fields: [saleItemId], references: [id])
+  product     Product     @relation(fields: [productId], references: [id])
+
+  @@index([salesReturnId])
+  @@index([saleItemId])
+  @@index([productId])
+  @@map("sales_return_items")
+}
+
+model StockAdjustment {
+  id               Int                 @id @default(autoincrement())
+  adjustmentNumber String              @unique
+  productId        Int
+  adjustmentType   AdjustmentType
+  direction        AdjustmentDirection
+  quantity         Int
+  stockBefore      Int
+  stockAfter       Int
+  reason           String              @db.Text
+  createdById      Int
+  createdAt        DateTime            @default(now())
+
+  product   Product @relation(fields: [productId], references: [id])
+  createdBy User    @relation("StockAdjustmentCreatedBy", fields: [createdById], references: [id])
+
+  @@index([productId])
+  @@index([createdAt])
+  @@map("stock_adjustments")
+}
+
+model StockMovement {
+  id            Int          @id @default(autoincrement())
+  productId     Int
+  movementType  MovementType
+  referenceType String
+  referenceId   Int
+  quantityIn    Int          @default(0)
+  quantityOut   Int          @default(0)
+  stockBefore   Int
+  stockAfter    Int
+  note          String?      @db.Text
+  createdById   Int
+  createdAt     DateTime     @default(now())
+
+  product   Product @relation(fields: [productId], references: [id])
+  createdBy User    @relation("StockMovementCreatedBy", fields: [createdById], references: [id])
+
+  @@index([productId, createdAt])
+  @@index([movementType])
+  @@index([referenceType, referenceId])
+  @@map("stock_movements")
+}
+
+model Expense {
+  id            Int             @id @default(autoincrement())
+  expenseNumber String          @unique
+  category      ExpenseCategory
+  description   String
+  amount        Decimal         @db.Decimal(12, 2)
+  expenseDate   DateTime
+  paymentMethod PaymentMethod
+  notes         String?         @db.Text
+  createdById   Int
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  createdBy User @relation("ExpenseCreatedBy", fields: [createdById], references: [id])
+
+  @@index([category])
+  @@index([expenseDate])
+  @@map("expenses")
 }
