@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Trash2, Eye } from "lucide-react";
@@ -60,7 +60,6 @@ export default function Purchases() {
     control,
     handleSubmit,
     reset,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(purchaseSchema),
@@ -77,9 +76,9 @@ export default function Purchases() {
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
-  const watchedItems = watch("items");
-  const watchedDiscount = watch("discount");
-  const watchedAdditionalCost = watch("additionalCost");
+  const watchedItems = useWatch({ control, name: "items" });
+  const watchedDiscount = useWatch({ control, name: "discount" });
+  const watchedAdditionalCost = useWatch({ control, name: "additionalCost" });
 
   const subtotal = useMemo(
     () => (watchedItems || []).reduce((sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitCost) || 0), 0),
@@ -266,44 +265,56 @@ export default function Purchases() {
                 Add item
               </button>
             </div>
-            <div className="mt-2 space-y-2">
-              {fields.map((field, index) => (
-                <div key={field.id} className="flex items-center gap-2">
-                  <select
-                    className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    {...register(`items.${index}.productId`)}
-                  >
-                    <option value="">Select product</option>
-                    {products.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.sku})
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    min="1"
-                    placeholder="Qty"
-                    className="w-24 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    {...register(`items.${index}.quantity`)}
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Unit cost"
-                    className="w-28 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    {...register(`items.${index}.unitCost`)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fields.length > 1 && remove(index)}
-                    className="text-slate-400 hover:text-red-600"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              ))}
+            <div className="mt-2 grid grid-cols-[1fr_5.5rem_6.5rem_5.5rem_1.5rem] gap-2 px-1 text-xs font-medium text-slate-500">
+              <span>Product</span>
+              <span>Quantity</span>
+              <span>Unit Cost (₹)</span>
+              <span>Line Total (₹)</span>
+              <span></span>
+            </div>
+            <div className="mt-1 space-y-2">
+              {fields.map((field, index) => {
+                const item = watchedItems?.[index];
+                const lineTotal = (Number(item?.quantity) || 0) * (Number(item?.unitCost) || 0);
+                return (
+                  <div key={field.id} className="grid grid-cols-[1fr_5.5rem_6.5rem_5.5rem_1.5rem] items-center gap-2">
+                    <select
+                      className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      {...register(`items.${index}.productId`)}
+                    >
+                      <option value="">Select product</option>
+                      {products.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} ({p.sku})
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      type="number"
+                      min="1"
+                      aria-label="Quantity"
+                      className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      {...register(`items.${index}.quantity`)}
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      aria-label="Unit cost"
+                      className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      {...register(`items.${index}.unitCost`)}
+                    />
+                    <span className="text-sm text-slate-600">{formatCurrency(lineTotal)}</span>
+                    <button
+                      type="button"
+                      onClick={() => fields.length > 1 && remove(index)}
+                      className="text-slate-400 hover:text-red-600"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                );
+              })}
             </div>
             {errors.items && !Array.isArray(errors.items) && (
               <p className="mt-1 text-xs text-red-600">{errors.items.message}</p>
