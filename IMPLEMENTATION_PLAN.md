@@ -1,5 +1,38 @@
 # Implementation Plan — AJ Stationery Stock & Sales Management App
 
+## Progress status (updated 2026-07-30)
+
+**Phase 2 — Foundation: mostly done.**
+
+Backend:
+- [x] Installed express, prisma@6, @prisma/client@6, bcryptjs, jsonwebtoken, cors, helmet, express-rate-limit, zod, dotenv, cookie-parser, morgan, nodemon, vitest, supertest
+- [x] Prisma configured for MySQL, `prisma.config.js` (converted from the generator's default `.ts` to plain JS)
+- [x] Full `schema.prisma` written and migrated (`init`, then `add-username`)
+- [x] Seed script (`prisma/seed.js`): 1 admin, 10 categories, 25 products, 3 suppliers, 3 purchases, 5 sales, 5 expenses — all stock changes go through proper `StockAdjustment`/`StockMovement` records, not raw field edits
+- [x] Auth implemented: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, JWT in httpOnly cookie, login rate-limited, bcrypt password check
+- [x] Central error handler, 404 handler, `ApiError`, `asyncHandler`, Zod `validate` middleware, env-variable validation (`config/env.js`)
+- [x] `Makefile` at repo root wrapping both `frontend`/`backend` npm scripts (install, dev, prisma:*, test, lint, build)
+- [ ] Not yet: controllers/services/routes for anything beyond auth (categories, products, suppliers, purchases, sales, etc. — Phase 3+)
+
+Frontend:
+- [x] Tailwind v4 wired via `@tailwindcss/vite`
+- [x] Installed react-router-dom, axios, react-hook-form, zod, @hookform/resolvers, lucide-react
+- [x] `AuthContext` (session check via `/auth/me` on load), `axiosInstance` (`withCredentials: true`), `authApi`
+- [x] `ProtectedRoute`, routing wired in `App.jsx`
+- [x] Login page (split-screen branded design) and a minimal Dashboard placeholder — auth flow verified working end-to-end in the browser
+- [ ] Not yet: `AppLayout` (sidebar + topbar), `AuthLayout`, real Dashboard cards/charts, any other page
+
+**Schema deviation from original plan:** added a `username` field (unique) to `User` alongside `email`, since login authenticates by username (`admin`/`admin123` seeded), not email.
+
+**Decisions confirmed:**
+1. Building inside existing `frontend/`/`backend/` folders — confirmed, not renaming to `client`/`server`.
+2. Keeping `oxlint` instead of ESLint — confirmed.
+3. MySQL is locally installed; using a dedicated `stationery_app` DB user (granted broad privileges locally so Prisma's shadow database works for migrations).
+
+Next up: Phase 3 (Categories → Products → Suppliers → Purchases → Stock Movement ledger), and building out `AppLayout` once there are enough real pages to hang it on.
+
+---
+
 ## 0. Repository inspection findings
 
 - Not a git repository yet.
@@ -66,7 +99,7 @@ aj_stationary_stock/
 
 Models (all `Int` autoincrement PKs, `Decimal(12,2)` for money, `createdAt`/`updatedAt` on mutable entities):
 
-- **User** — id, name, email (unique), passwordHash, role (enum `AdminRole { ADMIN }`), isActive, timestamps
+- **User** — id, name, username (unique, used for login), email (unique), passwordHash, role (enum `AdminRole { ADMIN }`), isActive, timestamps
 - **Category** — id, name (unique), description?, isActive, timestamps; relation → Product[]
 - **Product** — id, sku (unique), barcode? (unique, nullable), name, description?, categoryId (FK), brand?, unit (enum `Unit`), purchasePrice (Decimal), sellingPrice (Decimal), mrp? (Decimal), currentStock (Int, default 0), minimumStock (Int, default 0), isActive, timestamps. Indexes on name, categoryId, isActive.
 - **Supplier** — id, name, contactPerson?, phone?, email?, address?, gstNumber?, notes?, isActive, timestamps
@@ -154,8 +187,6 @@ I will pause after each phase to run the relevant build/lint/test commands and r
 
 ---
 
-## Open questions for you before I start Phase 2
+## Open questions — resolved
 
-1. OK to build inside existing `frontend/`/`backend/` folders (not `client/`/`server/`)?
-2. OK to keep `oxlint` for the frontend lint script instead of switching to ESLint?
-3. Do you already have a local MySQL instance/credentials ready, or should the plan assume a placeholder `DATABASE_URL` you'll fill in yourself before running migrations?
+See "Decisions confirmed" in the Progress status section at the top of this file.
