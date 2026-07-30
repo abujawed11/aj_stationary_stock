@@ -82,16 +82,6 @@ async function create(data) {
     throw new ApiError(400, "Category not found");
   }
 
-  let sku = data.sku;
-  if (!sku) {
-    sku = await generateSku();
-  } else {
-    const existingSku = await prisma.product.findUnique({ where: { sku } });
-    if (existingSku) {
-      throw new ApiError(409, "SKU already exists");
-    }
-  }
-
   if (data.barcode) {
     const existingBarcode = await prisma.product.findUnique({ where: { barcode: data.barcode } });
     if (existingBarcode) {
@@ -99,10 +89,13 @@ async function create(data) {
     }
   }
 
+  const sku = await generateSku();
+
   return prisma.product.create({
     data: {
       ...data,
       sku,
+      purchasePrice: 0,
       currentStock: 0,
       minimumStock: data.minimumStock ?? 0,
     },

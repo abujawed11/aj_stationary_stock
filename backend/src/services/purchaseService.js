@@ -120,6 +120,9 @@ async function create(data, userId) {
 
     for (const item of itemsWithTotals) {
       const { stockBefore, stockAfter } = await increaseStock(tx, item.productId, item.quantity);
+      // Cost basis is refreshed from the latest actual purchase price paid,
+      // rather than a manually-guessed value on the product itself.
+      await tx.product.update({ where: { id: item.productId }, data: { purchasePrice: item.unitCost } });
       await recordMovement(tx, {
         productId: item.productId,
         movementType: "PURCHASE",
