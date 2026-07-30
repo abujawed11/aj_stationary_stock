@@ -9,7 +9,7 @@ import Table from "../components/Table";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
-import { formatCurrency, formatDate } from "../utils/currency";
+import { formatCurrency, formatDate, formatDateTime } from "../utils/currency";
 import { selectOnFocus } from "../utils/formHelpers";
 import { useToast } from "../context/ToastContext";
 
@@ -196,7 +196,7 @@ export default function Products() {
       },
     },
     { key: "status", header: "Status", render: (row) => <StatusBadge active={row.isActive} /> },
-    { key: "updatedAt", header: "Last Updated", render: (row) => formatDate(row.updatedAt) },
+    { key: "updatedAt", header: "Last Updated", render: (row) => formatDateTime(row.updatedAt) },
     {
       key: "actions",
       header: "Actions",

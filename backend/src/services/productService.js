@@ -29,24 +29,40 @@ async function list(query) {
 
   const sortBy = SORTABLE_FIELDS.includes(query.sortBy) ? query.sortBy : "updatedAt";
   const sortOrder = query.sortBy ? (query.sortOrder === "desc" ? "desc" : "asc") : "desc";
+  const { page, limit, skip } = getPagination(query);
 
-  let items = await prisma.product.findMany({
-    where,
-    include: { category: true },
-    orderBy: { [sortBy]: sortOrder },
-  });
+  if (query.stockStatus === "LOW" || query.stockStatus === "OUT") {
+    // currentStock vs minimumStock is a column-to-column comparison Prisma can't
+    // express in `where`, so this path filters in memory. Fine at small-shop scale;
+    // the default (unfiltered) path below uses real DB-level pagination.
+    let items = await prisma.product.findMany({
+      where,
+      include: { category: true },
+      orderBy: { [sortBy]: sortOrder },
+    });
 
-  if (query.stockStatus === "LOW") {
-    items = items.filter((p) => p.currentStock > 0 && p.currentStock <= p.minimumStock);
-  } else if (query.stockStatus === "OUT") {
-    items = items.filter((p) => p.currentStock === 0);
+    items =
+      query.stockStatus === "LOW"
+        ? items.filter((p) => p.currentStock > 0 && p.currentStock <= p.minimumStock)
+        : items.filter((p) => p.currentStock === 0);
+
+    const total = items.length;
+    const paged = items.slice(skip, skip + limit);
+    return { items: paged, meta: buildMeta(page, limit, total) };
   }
 
-  const total = items.length;
-  const { page, limit, skip } = getPagination(query);
-  const paged = items.slice(skip, skip + limit);
+  const [items, total] = await Promise.all([
+    prisma.product.findMany({
+      where,
+      include: { category: true },
+      orderBy: { [sortBy]: sortOrder },
+      skip,
+      take: limit,
+    }),
+    prisma.product.count({ where }),
+  ]);
 
-  return { items: paged, meta: buildMeta(page, limit, total) };
+  return { items, meta: buildMeta(page, limit, total) };
 }
 
 async function getById(id) {
