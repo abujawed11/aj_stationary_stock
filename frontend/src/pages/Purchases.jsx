@@ -300,14 +300,9 @@ export default function Purchases() {
                       className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       {...register(`items.${index}.quantity`)}
                     />
-                    <select
-                      disabled
-                      value={selectedProduct?.unit || ""}
-                      className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500"
-                    >
-                      <option value="">-</option>
-                      {selectedProduct && <option value={selectedProduct.unit}>{selectedProduct.unit}</option>}
-                    </select>
+                    <span className="flex h-full items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                      {selectedProduct?.unit || "-"}
+                    </span>
                     <input
                       type="number"
                       min="0"

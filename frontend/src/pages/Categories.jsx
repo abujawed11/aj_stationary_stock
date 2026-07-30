@@ -23,6 +23,7 @@ export default function Categories() {
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [formError, setFormError] = useState("");
 
   const {
     register,
@@ -52,21 +53,29 @@ export default function Categories() {
 
   function openCreate() {
     setEditing(null);
+    setFormError("");
     reset({ name: "", description: "" });
     setModalOpen(true);
   }
 
   function openEdit(category) {
     setEditing(category);
+    setFormError("");
     reset({ name: category.name, description: category.description || "" });
     setModalOpen(true);
   }
 
   async function onSubmit(values) {
-    if (editing) {
-      await categoryApi.update(editing.id, values);
-    } else {
-      await categoryApi.create(values);
+    setFormError("");
+    try {
+      if (editing) {
+        await categoryApi.update(editing.id, values);
+      } else {
+        await categoryApi.create(values);
+      }
+    } catch (err) {
+      setFormError(err.response?.data?.message || "Failed to save category");
+      return;
     }
     setModalOpen(false);
     setPage(1);
@@ -158,6 +167,7 @@ export default function Categories() {
               {...register("description")}
             />
           </div>
+          {formError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>}
           <div className="flex justify-end gap-2">
             <button
               type="button"

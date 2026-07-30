@@ -51,6 +51,7 @@ export default function Products() {
   const [editing, setEditing] = useState(null);
   const [ledgerProduct, setLedgerProduct] = useState(null);
   const [ledgerItems, setLedgerItems] = useState([]);
+  const [formError, setFormError] = useState("");
 
   const {
     register,
@@ -94,6 +95,7 @@ export default function Products() {
 
   function openCreate() {
     setEditing(null);
+    setFormError("");
     reset({
       sku: "",
       barcode: "",
@@ -112,6 +114,7 @@ export default function Products() {
 
   function openEdit(product) {
     setEditing(product);
+    setFormError("");
     reset({
       barcode: product.barcode || "",
       name: product.name,
@@ -128,17 +131,28 @@ export default function Products() {
   }
 
   async function onSubmit(values) {
-    const payload = { ...values, mrp: values.mrp === "" ? undefined : values.mrp };
-    if (editing) {
-      delete payload.sku;
-      await productApi.update(editing.id, payload);
-    } else {
-      if (!payload.sku) delete payload.sku;
-      await productApi.create(payload);
+    setFormError("");
+    const payload = {
+      ...values,
+      mrp: values.mrp === "" ? undefined : values.mrp,
+      barcode: values.barcode || undefined,
+      brand: values.brand || undefined,
+      description: values.description || undefined,
+    };
+    try {
+      if (editing) {
+        delete payload.sku;
+        await productApi.update(editing.id, payload);
+      } else {
+        if (!payload.sku) delete payload.sku;
+        await productApi.create(payload);
+      }
+      setModalOpen(false);
+      setPage(1);
+      loadProducts();
+    } catch (err) {
+      setFormError(err.response?.data?.message || "Failed to save product");
     }
-    setModalOpen(false);
-    setPage(1);
-    loadProducts();
   }
 
   async function toggleStatus(product) {
@@ -369,6 +383,10 @@ export default function Products() {
               {...register("description")}
             />
           </div>
+
+          {formError && (
+            <p className="sm:col-span-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>
+          )}
 
           <div className="sm:col-span-2 flex justify-end gap-2">
             <button

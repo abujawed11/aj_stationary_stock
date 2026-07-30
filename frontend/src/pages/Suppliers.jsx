@@ -30,6 +30,7 @@ export default function Suppliers() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [detail, setDetail] = useState(null);
+  const [formError, setFormError] = useState("");
 
   const {
     register,
@@ -59,12 +60,14 @@ export default function Suppliers() {
 
   function openCreate() {
     setEditing(null);
+    setFormError("");
     reset({ name: "", contactPerson: "", phone: "", email: "", address: "", gstNumber: "", notes: "" });
     setModalOpen(true);
   }
 
   function openEdit(supplier) {
     setEditing(supplier);
+    setFormError("");
     reset({
       name: supplier.name,
       contactPerson: supplier.contactPerson || "",
@@ -78,11 +81,17 @@ export default function Suppliers() {
   }
 
   async function onSubmit(values) {
+    setFormError("");
     const payload = { ...values, email: values.email || undefined };
-    if (editing) {
-      await supplierApi.update(editing.id, payload);
-    } else {
-      await supplierApi.create(payload);
+    try {
+      if (editing) {
+        await supplierApi.update(editing.id, payload);
+      } else {
+        await supplierApi.create(payload);
+      }
+    } catch (err) {
+      setFormError(err.response?.data?.message || "Failed to save supplier");
+      return;
     }
     setModalOpen(false);
     setPage(1);
@@ -216,6 +225,9 @@ export default function Suppliers() {
               {...register("notes")}
             />
           </div>
+          {formError && (
+            <p className="sm:col-span-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>
+          )}
           <div className="sm:col-span-2 flex justify-end gap-2">
             <button
               type="button"
