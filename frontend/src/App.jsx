@@ -14,6 +14,8 @@ import Receipt from "./pages/Receipt";
 import StockAdjustments from "./pages/StockAdjustments";
 import Expenses from "./pages/Expenses";
 import Reports from "./pages/Reports";
+import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
 
 function App() {
   return (
@@ -36,11 +38,12 @@ function App() {
                 <Route path="/stock-adjustments" element={<StockAdjustments />} />
                 <Route path="/expenses" element={<Expenses />} />
                 <Route path="/reports" element={<Reports />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
       </ToastProvider>

@@ -20,4 +20,9 @@ const createPurchaseSchema = z.object({
   items: z.array(purchaseItemSchema).min(1, "At least one item is required"),
 });
 
-module.exports = { PAYMENT_METHODS, createPurchaseSchema };
+const recordPaymentSchema = z.object({
+  amount: z.coerce.number().positive("Amount must be greater than 0"),
+  paymentMethod: z.enum(PAYMENT_METHODS).optional(),
+});
+
+module.exports = { PAYMENT_METHODS, createPurchaseSchema, recordPaymentSchema };

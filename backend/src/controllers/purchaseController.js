@@ -22,4 +22,9 @@ const cancel = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: "Purchase cancelled successfully", data: purchase });
 });
 
-module.exports = { list, getById, create, cancel };
+const recordPayment = asyncHandler(async (req, res) => {
+  const purchase = await purchaseService.recordPayment(req.params.id, req.body);
+  sendSuccess(res, { message: "Payment recorded successfully", data: purchase });
+});
+
+module.exports = { list, getById, create, cancel, recordPayment };

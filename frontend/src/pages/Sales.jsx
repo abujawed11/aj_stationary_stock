@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Trash2, Eye, Printer, Undo2, IndianRupee } from "lucide-react";
@@ -11,6 +11,7 @@ import Table from "../components/Table";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import ProductSearchSelect from "../components/ProductSearchSelect";
 import { formatCurrency, formatDateTime } from "../utils/currency";
 import { selectOnFocus } from "../utils/formHelpers";
 import { useToast } from "../context/ToastContext";
@@ -388,24 +389,22 @@ export default function Sales() {
                 const selectedProduct = products.find((p) => String(p.id) === String(item?.productId));
                 const lineTotal = (Number(item?.quantity) || 0) * (Number(item?.sellingPrice) || 0);
                 const exceedsStock = selectedProduct && Number(item?.quantity) > selectedProduct.currentStock;
-                const registeredProductId = register(`items.${index}.productId`);
                 return (
                   <div key={field.id} className="grid grid-cols-[1fr_5rem_5rem_6.5rem_6rem_1.5rem] items-center gap-3">
-                    <select
-                      className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      {...registeredProductId}
-                      onChange={(e) => {
-                        registeredProductId.onChange(e);
-                        handleProductChange(index, e.target.value);
-                      }}
-                    >
-                      <option value="">Select product</option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({p.sku})
-                        </option>
-                      ))}
-                    </select>
+                    <Controller
+                      control={control}
+                      name={`items.${index}.productId`}
+                      render={({ field: controllerField }) => (
+                        <ProductSearchSelect
+                          products={products}
+                          value={controllerField.value}
+                          onChange={(id) => {
+                            controllerField.onChange(id);
+                            handleProductChange(index, id);
+                          }}
+                        />
+                      )}
+                    />
                     <input
                       type="number"
                       min="1"

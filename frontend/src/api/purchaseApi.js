@@ -20,4 +20,9 @@ async function cancel(id) {
   return data.data;
 }
 
-export default { list, getById, create, cancel };
+async function recordPayment(id, payload) {
+  const { data } = await axiosInstance.post(`/purchases/${id}/payment`, payload);
+  return data.data;
+}
+
+export default { list, getById, create, cancel, recordPayment };

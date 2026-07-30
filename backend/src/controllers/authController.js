@@ -29,4 +29,10 @@ const me = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: "Current admin fetched", data: { user: req.user } });
 });
 
-module.exports = { login, logout, me };
+const changePassword = asyncHandler(async (req, res) => {
+  await authService.changePassword(req.user.id, req.body);
+  res.clearCookie(COOKIE_NAME);
+  sendSuccess(res, { message: "Password changed successfully. Please log in again." });
+});
+
+module.exports = { login, logout, me, changePassword };

@@ -14,4 +14,8 @@ async function getCurrentUser() {
   return data.data.user;
 }
 
-export default { login, logout, getCurrentUser };
+async function changePassword(currentPassword, newPassword) {
+  await axiosInstance.post("/auth/change-password", { currentPassword, newPassword });
+}
+
+export default { login, logout, getCurrentUser, changePassword };

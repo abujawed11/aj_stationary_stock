@@ -185,4 +185,31 @@ async function cancel(id, userId) {
   });
 }
 
-module.exports = { list, getById, create, cancel };
+async function recordPayment(id, data) {
+  const purchase = await prisma.purchase.findUnique({ where: { id: Number(id) } });
+  if (!purchase) {
+    throw new ApiError(404, "Purchase not found");
+  }
+  if (purchase.status === "CANCELLED") {
+    throw new ApiError(400, "Cannot record a payment against a cancelled purchase");
+  }
+  if (data.amount > Number(purchase.dueAmount)) {
+    throw new ApiError(400, "Payment amount exceeds the due amount");
+  }
+
+  const paidAmount = toNumber(add(purchase.paidAmount, data.amount));
+  const dueAmount = toNumber(subtract(purchase.totalAmount, paidAmount));
+  const paymentStatus = dueAmount === 0 ? "PAID" : "PARTIALLY_PAID";
+
+  return prisma.purchase.update({
+    where: { id: purchase.id },
+    data: {
+      paidAmount,
+      dueAmount,
+      paymentStatus,
+      paymentMethod: data.paymentMethod || purchase.paymentMethod,
+    },
+  });
+}
+
+module.exports = { list, getById, create, cancel, recordPayment };
