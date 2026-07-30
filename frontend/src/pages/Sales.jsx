@@ -478,10 +478,16 @@ export default function Sales() {
               <p><span className="text-slate-400">Status:</span> <SaleStatusLabel status={detail.status} /></p>
             </div>
             <div className="space-y-1.5">
+              <div className="grid grid-cols-[1fr_5rem_5rem] gap-2 px-3 text-xs font-medium text-slate-400">
+                <span>Item</span>
+                <span className="text-right">Total</span>
+                <span className="text-right">Profit</span>
+              </div>
               {detail.items.map((item) => (
-                <div key={item.id} className="flex justify-between rounded-md border border-slate-100 px-3 py-1.5">
+                <div key={item.id} className="grid grid-cols-[1fr_5rem_5rem] gap-2 rounded-md border border-slate-100 px-3 py-1.5">
                   <span>{item.product.name} × {item.quantity}</span>
-                  <span>{formatCurrency(item.totalAmount)}</span>
+                  <span className="text-right">{formatCurrency(item.totalAmount)}</span>
+                  <span className="text-right text-emerald-600">{formatCurrency(item.grossProfit)}</span>
                 </div>
               ))}
             </div>
@@ -491,6 +497,11 @@ export default function Sales() {
               <p className="font-semibold text-slate-800">Total: {formatCurrency(detail.totalAmount)}</p>
               <p>Paid: {formatCurrency(detail.paidAmount)}</p>
               <p>Due: {formatCurrency(detail.dueAmount)}</p>
+              <p className="font-semibold text-emerald-600">
+                Gross Profit: {formatCurrency(
+                  detail.items.reduce((sum, i) => sum + Number(i.grossProfit), 0) - Number(detail.discount)
+                )}
+              </p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               <Link
