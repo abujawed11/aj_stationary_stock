@@ -25,4 +25,9 @@ async function getReceipt(id) {
   return data.data;
 }
 
-export default { list, getById, create, cancel, getReceipt };
+async function recordPayment(id, payload) {
+  const { data } = await axiosInstance.post(`/sales/${id}/payment`, payload);
+  return data.data;
+}
+
+export default { list, getById, create, cancel, getReceipt, recordPayment };

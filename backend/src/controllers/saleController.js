@@ -27,4 +27,9 @@ const getReceipt = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: "Receipt fetched", data: sale });
 });
 
-module.exports = { list, getById, create, cancel, getReceipt };
+const recordPayment = asyncHandler(async (req, res) => {
+  const sale = await saleService.recordPayment(req.params.id, req.body);
+  sendSuccess(res, { message: "Payment recorded successfully", data: sale });
+});
+
+module.exports = { list, getById, create, cancel, getReceipt, recordPayment };

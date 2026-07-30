@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, Eye, Printer, Undo2 } from "lucide-react";
+import { Plus, Trash2, Eye, Printer, Undo2, IndianRupee } from "lucide-react";
 import { Link } from "react-router-dom";
 import saleApi from "../api/saleApi";
 import salesReturnApi from "../api/salesReturnApi";
@@ -71,6 +71,10 @@ export default function Sales() {
   const [returnMethod, setReturnMethod] = useState("CASH");
   const [returnReason, setReturnReason] = useState("");
   const [returnError, setReturnError] = useState("");
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState(0);
+  const [paymentMethodInput, setPaymentMethodInput] = useState("CASH");
+  const [paymentError, setPaymentError] = useState("");
 
   const {
     register,
@@ -174,6 +178,29 @@ export default function Sales() {
       load();
     } catch (err) {
       showToast(err.response?.data?.message || "Failed to cancel sale", "error");
+    }
+  }
+
+  function openPaymentModal() {
+    setPaymentAmount(Number(detail.dueAmount));
+    setPaymentMethodInput(detail.paymentMethod);
+    setPaymentError("");
+    setPaymentModalOpen(true);
+  }
+
+  async function submitPayment() {
+    setPaymentError("");
+    try {
+      const updated = await saleApi.recordPayment(detail.id, {
+        amount: paymentAmount,
+        paymentMethod: paymentMethodInput,
+      });
+      showToast("Payment recorded successfully");
+      setPaymentModalOpen(false);
+      setDetail((prev) => ({ ...prev, ...updated }));
+      load();
+    } catch (err) {
+      setPaymentError(err.response?.data?.message || "Failed to record payment");
     }
   }
 
@@ -512,6 +539,15 @@ export default function Sales() {
                 <Printer className="h-4 w-4" />
                 Print Receipt
               </Link>
+              {detail.status !== "CANCELLED" && Number(detail.dueAmount) > 0 && (
+                <button
+                  onClick={openPaymentModal}
+                  className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  <IndianRupee className="h-4 w-4" />
+                  Record Payment
+                </button>
+              )}
               {(detail.status === "COMPLETED" || detail.status === "PARTIALLY_RETURNED") && (
                 <button
                   onClick={() => openReturn(detail)}
@@ -529,6 +565,58 @@ export default function Sales() {
                   Cancel Sale
                 </button>
               )}
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} title="Record Payment" maxWidth="max-w-sm">
+        {detail && (
+          <div className="space-y-4 text-sm">
+            <p className="text-slate-500">
+              Due amount: <span className="font-semibold text-slate-800">{formatCurrency(detail.dueAmount)}</span>
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Amount Received (₹)</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                max={Number(detail.dueAmount)}
+                onFocus={selectOnFocus}
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Payment Method</label>
+              <select
+                value={paymentMethodInput}
+                onChange={(e) => setPaymentMethodInput(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              >
+                {PAYMENT_METHODS.map((m) => (
+                  <option key={m} value={m}>{m.replace("_", " ")}</option>
+                ))}
+              </select>
+            </div>
+
+            {paymentError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{paymentError}</p>}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setPaymentModalOpen(false)}
+                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitPayment}
+                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+              >
+                Record Payment
+              </button>
             </div>
           </div>
         )}
