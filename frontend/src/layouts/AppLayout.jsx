@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { Boxes, LayoutDashboard, Tags, Package, Truck, ShoppingCart, Receipt, Menu, X, LogOut } from "lucide-react";
+import { Boxes, LayoutDashboard, Tags, Package, Truck, ShoppingCart, Receipt, SlidersHorizontal, Menu, X, LogOut } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const NAV_ITEMS = [
@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: "/suppliers", label: "Suppliers", icon: Truck },
   { to: "/purchases", label: "Purchases", icon: ShoppingCart },
   { to: "/sales", label: "Sales", icon: Receipt },
+  { to: "/stock-adjustments", label: "Stock Adjustments", icon: SlidersHorizontal },
 ];
 
 function SidebarContent({ onNavigate }) {

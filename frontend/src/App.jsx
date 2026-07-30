@@ -11,6 +11,7 @@ import Suppliers from "./pages/Suppliers";
 import Purchases from "./pages/Purchases";
 import Sales from "./pages/Sales";
 import Receipt from "./pages/Receipt";
+import StockAdjustments from "./pages/StockAdjustments";
 
 function App() {
   return (
@@ -30,6 +31,7 @@ function App() {
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/purchases" element={<Purchases />} />
                 <Route path="/sales" element={<Sales />} />
+                <Route path="/stock-adjustments" element={<StockAdjustments />} />
               </Route>
             </Route>
 
