@@ -9,6 +9,8 @@ import Categories from "./pages/Categories";
 import Products from "./pages/Products";
 import Suppliers from "./pages/Suppliers";
 import Purchases from "./pages/Purchases";
+import Sales from "./pages/Sales";
+import Receipt from "./pages/Receipt";
 
 function App() {
   return (
@@ -19,12 +21,15 @@ function App() {
             <Route path="/login" element={<Login />} />
 
             <Route element={<ProtectedRoute />}>
+              <Route path="/sales/:id/receipt" element={<Receipt />} />
+
               <Route element={<AppLayout />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/products" element={<Products />} />
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/purchases" element={<Purchases />} />
+                <Route path="/sales" element={<Sales />} />
               </Route>
             </Route>
 
