@@ -1,6 +1,6 @@
 .PHONY: help install install-backend install-frontend \
 	backend-dev frontend-dev \
-	prisma-generate prisma-validate prisma-migrate prisma-seed prisma-studio \
+	prisma-generate prisma-validate prisma-migrate prisma-reset prisma-seed prisma-studio \
 	backend-test frontend-lint frontend-build frontend-preview
 
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make prisma-generate    Regenerate Prisma client"
 	@echo "  make prisma-validate    Validate schema.prisma"
 	@echo "  make prisma-migrate     Run Prisma migrations (dev)"
+	@echo "  make prisma-reset       Drop and recreate the database, reapply migrations"
 	@echo "  make prisma-seed        Run Prisma seed script"
 	@echo "  make prisma-studio      Open Prisma Studio"
 	@echo "  make backend-test       Run backend tests (vitest)"
@@ -40,6 +41,9 @@ prisma-validate:
 
 prisma-migrate:
 	npm --prefix backend run prisma:migrate
+
+prisma-reset:
+	npm --prefix backend run prisma:reset
 
 prisma-seed:
 	npm --prefix backend run prisma:seed

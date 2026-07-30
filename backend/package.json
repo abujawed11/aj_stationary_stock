@@ -9,6 +9,7 @@
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:migrate": "prisma migrate dev",
+    "prisma:reset": "prisma migrate reset --skip-seed",
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
     "test": "vitest run"
