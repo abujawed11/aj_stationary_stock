@@ -20,6 +20,7 @@ export default function Categories() {
   const [categories, setCategories] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -38,7 +39,7 @@ export default function Categories() {
     setLoading(true);
     setError("");
     try {
-      const res = await categoryApi.list({ page, search: search || undefined });
+      const res = await categoryApi.list({ page, limit, search: search || undefined });
       setCategories(res.data);
       setMeta(res.meta);
     } catch (err) {
@@ -51,7 +52,12 @@ export default function Categories() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, limit]);
+
+  function handlePageSizeChange(size) {
+    setLimit(size);
+    setPage(1);
+  }
 
   function openCreate() {
     setEditing(null);
@@ -153,7 +159,7 @@ export default function Categories() {
         ) : (
           <>
             <Table columns={columns} data={categories} />
-            <Pagination meta={meta} onPageChange={setPage} />
+            <Pagination meta={meta} onPageChange={setPage} pageSize={limit} onPageSizeChange={handlePageSizeChange} />
           </>
         )}
       </div>

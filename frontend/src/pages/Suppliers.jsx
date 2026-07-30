@@ -26,6 +26,7 @@ export default function Suppliers() {
   const [suppliers, setSuppliers] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -45,7 +46,7 @@ export default function Suppliers() {
     setLoading(true);
     setError("");
     try {
-      const res = await supplierApi.list({ page, search: search || undefined });
+      const res = await supplierApi.list({ page, limit, search: search || undefined });
       setSuppliers(res.data);
       setMeta(res.meta);
     } catch (err) {
@@ -58,7 +59,12 @@ export default function Suppliers() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, limit]);
+
+  function handlePageSizeChange(size) {
+    setLimit(size);
+    setPage(1);
+  }
 
   function openCreate() {
     setEditing(null);
@@ -175,7 +181,7 @@ export default function Suppliers() {
         ) : (
           <>
             <Table columns={columns} data={suppliers} />
-            <Pagination meta={meta} onPageChange={setPage} />
+            <Pagination meta={meta} onPageChange={setPage} pageSize={limit} onPageSizeChange={handlePageSizeChange} />
           </>
         )}
       </div>

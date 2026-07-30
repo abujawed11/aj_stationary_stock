@@ -44,6 +44,7 @@ export default function Products() {
   const [categories, setCategories] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [stockStatus, setStockStatus] = useState("");
@@ -73,6 +74,7 @@ export default function Products() {
     try {
       const res = await productApi.list({
         page,
+        limit,
         search: search || undefined,
         categoryId: categoryId || undefined,
         stockStatus: stockStatus || undefined,
@@ -93,7 +95,12 @@ export default function Products() {
   useEffect(() => {
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, categoryId, stockStatus]);
+  }, [page, limit, categoryId, stockStatus]);
+
+  function handlePageSizeChange(size) {
+    setLimit(size);
+    setPage(1);
+  }
 
   function openCreate() {
     setEditing(null);
@@ -274,7 +281,7 @@ export default function Products() {
         ) : (
           <>
             <Table columns={columns} data={products} />
-            <Pagination meta={meta} onPageChange={setPage} />
+            <Pagination meta={meta} onPageChange={setPage} pageSize={limit} onPageSizeChange={handlePageSizeChange} />
           </>
         )}
       </div>

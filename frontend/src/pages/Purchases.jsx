@@ -49,6 +49,7 @@ export default function Purchases() {
   const [purchases, setPurchases] = useState([]);
   const [meta, setMeta] = useState(null);
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [suppliers, setSuppliers] = useState([]);
@@ -93,7 +94,7 @@ export default function Purchases() {
     setLoading(true);
     setError("");
     try {
-      const res = await purchaseApi.list({ page });
+      const res = await purchaseApi.list({ page, limit });
       setPurchases(res.data);
       setMeta(res.meta);
     } catch (err) {
@@ -106,7 +107,12 @@ export default function Purchases() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, [page, limit]);
+
+  function handlePageSizeChange(size) {
+    setLimit(size);
+    setPage(1);
+  }
 
   async function openCreate() {
     setFormError("");
@@ -218,7 +224,7 @@ export default function Purchases() {
         ) : (
           <>
             <Table columns={columns} data={purchases} />
-            <Pagination meta={meta} onPageChange={setPage} />
+            <Pagination meta={meta} onPageChange={setPage} pageSize={limit} onPageSizeChange={handlePageSizeChange} />
           </>
         )}
       </div>
