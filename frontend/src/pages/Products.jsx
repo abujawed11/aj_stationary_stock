@@ -10,6 +10,7 @@ import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
 import { formatCurrency, formatDate } from "../utils/currency";
+import { selectOnFocus } from "../utils/formHelpers";
 
 const UNITS = ["PIECE", "PACKET", "BOX", "DOZEN", "REAM", "SET", "BOTTLE", "ROLL"];
 
@@ -320,6 +321,7 @@ export default function Products() {
             <input
               type="number"
               min="0"
+              onFocus={selectOnFocus}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               {...register("minimumStock")}
             />
@@ -330,6 +332,7 @@ export default function Products() {
               type="number"
               step="0.01"
               min="0"
+              onFocus={selectOnFocus}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               {...register("purchasePrice")}
             />
@@ -341,6 +344,7 @@ export default function Products() {
               type="number"
               step="0.01"
               min="0"
+              onFocus={selectOnFocus}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               {...register("sellingPrice")}
             />
@@ -352,6 +356,7 @@ export default function Products() {
               type="number"
               step="0.01"
               min="0"
+              onFocus={selectOnFocus}
               className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               {...register("mrp")}
             />

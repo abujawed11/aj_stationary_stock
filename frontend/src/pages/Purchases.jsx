@@ -10,6 +10,7 @@ import Table from "../components/Table";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import { selectOnFocus } from "../utils/formHelpers";
 import { formatCurrency, formatDate } from "../utils/currency";
 
 const PAYMENT_METHODS = ["CASH", "UPI", "BANK_TRANSFER", "OTHER"];
@@ -214,7 +215,7 @@ export default function Purchases() {
         )}
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Purchase" maxWidth="max-w-3xl">
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Purchase" maxWidth="max-w-4xl">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
@@ -265,9 +266,10 @@ export default function Purchases() {
                 Add item
               </button>
             </div>
-            <div className="mt-2 grid grid-cols-[1fr_5.5rem_6.5rem_5.5rem_1.5rem] gap-2 px-1 text-xs font-medium text-slate-500">
+            <div className="mt-2 grid grid-cols-[1fr_6rem_6rem_7rem_6rem_1.5rem] gap-3 px-1 text-xs font-medium text-slate-500">
               <span>Product</span>
               <span>Quantity</span>
+              <span>Unit</span>
               <span>Unit Cost (₹)</span>
               <span>Line Total (₹)</span>
               <span></span>
@@ -276,8 +278,9 @@ export default function Purchases() {
               {fields.map((field, index) => {
                 const item = watchedItems?.[index];
                 const lineTotal = (Number(item?.quantity) || 0) * (Number(item?.unitCost) || 0);
+                const selectedProduct = products.find((p) => String(p.id) === String(item?.productId));
                 return (
-                  <div key={field.id} className="grid grid-cols-[1fr_5.5rem_6.5rem_5.5rem_1.5rem] items-center gap-2">
+                  <div key={field.id} className="grid grid-cols-[1fr_6rem_6rem_7rem_6rem_1.5rem] items-center gap-3">
                     <select
                       className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       {...register(`items.${index}.productId`)}
@@ -293,15 +296,25 @@ export default function Purchases() {
                       type="number"
                       min="1"
                       aria-label="Quantity"
-                      className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      onFocus={selectOnFocus}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       {...register(`items.${index}.quantity`)}
                     />
+                    <select
+                      disabled
+                      value={selectedProduct?.unit || ""}
+                      className="w-full rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500"
+                    >
+                      <option value="">-</option>
+                      {selectedProduct && <option value={selectedProduct.unit}>{selectedProduct.unit}</option>}
+                    </select>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
                       aria-label="Unit cost"
-                      className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                      onFocus={selectOnFocus}
+                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                       {...register(`items.${index}.unitCost`)}
                     />
                     <span className="text-sm text-slate-600">{formatCurrency(lineTotal)}</span>
@@ -328,6 +341,7 @@ export default function Purchases() {
                 type="number"
                 min="0"
                 step="0.01"
+                onFocus={selectOnFocus}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 {...register("discount")}
               />
@@ -338,6 +352,7 @@ export default function Purchases() {
                 type="number"
                 min="0"
                 step="0.01"
+                onFocus={selectOnFocus}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 {...register("additionalCost")}
               />
@@ -348,6 +363,7 @@ export default function Purchases() {
                 type="number"
                 min="0"
                 step="0.01"
+                onFocus={selectOnFocus}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 {...register("paidAmount")}
               />
