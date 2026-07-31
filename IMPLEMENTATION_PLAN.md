@@ -190,3 +190,103 @@ I will pause after each phase to run the relevant build/lint/test commands and r
 ## Open questions — resolved
 
 See "Decisions confirmed" in the Progress status section at the top of this file.
+
+---
+
+## Phase 7 — UI/UX Modernization (planned 2026-07-31)
+
+### 7.0 Where things stand today
+
+Codebase review of `frontend/src` found the foundation is already reasonable — Tailwind v4, `lucide-react` icons, `react-hook-form` + `zod`, a branded split-screen Login page, a working sidebar layout, `recharts` on the dashboard, and a custom toast system. This is **not a rebuild**; it's a polish pass. The concrete gaps that make it feel "basic":
+
+1. **No shared form/UI primitives.** Every page (`Products.jsx`, `Sales.jsx`, `Purchases.jsx`, etc.) hand-writes the same `<input className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:...">` block dozens of times. Inconsistent, hard to restyle, no room for icons/affordances (e.g. currency prefix, validation state icon).
+2. **Flat, static modals.** `Modal.jsx` has no enter/exit transition, no backdrop blur — it just appears/disappears.
+3. **Plain tables.** `Table.jsx` has no sticky header, no zebra striping, row actions are bare inline icon buttons with no grouping (gets cramped once more actions are added).
+4. **No skeleton loading states** — every page shows a plain "Loading..." text string instead of a shaped placeholder.
+5. **Dashboard stat cards** (`StatCard.jsx`) are small, same-weight, and there are 12 of them in a flat grid with no visual hierarchy (primary KPIs vs. secondary counts) and no trend indicators.
+6. **Default system font** — no distinct typographic identity.
+7. **No dark mode.**
+8. **Empty states are one line of gray text**, no icon or call-to-action.
+9. **Buttons are copy-pasted className strings** with no variants (primary/secondary/danger/ghost).
+
+### 7.1 Goals
+
+- Give the app a cohesive, modern "SaaS dashboard" feel without changing any business logic, API contracts, or routes.
+- Replace repeated raw markup with a small shared component library so every page automatically looks consistent and future pages inherit the styling for free.
+- Use icons purposefully (empty states, form field affordances, status indicators, menu actions) rather than only in the sidebar.
+- Keep the bundle lean — prefer Tailwind + a couple of well-chosen headless/animation libraries over heavy UI kits.
+
+### 7.2 New dependencies
+
+| Package | Purpose | Why this one |
+|---|---|---|
+| `@headlessui/react` | Accessible unstyled primitives: `Menu` (row action dropdowns), `Listbox` (styled selects), `Dialog`+`Transition` (animated modal), `Switch` (settings toggles) | Built by Tailwind's own team, zero visual opinions, pairs directly with existing Tailwind classes, no CSS-in-JS |
+| `motion` (formerly `framer-motion`) | Modal/menu transitions, list enter/exit, subtle hover/tap micro-animations, animated number count-up on stat cards | Industry-standard, small API surface for the few spots we need it |
+| `@fontsource-variable/plus-jakarta-sans` (or `inter`) | Self-hosted variable webfont | Gives real typographic identity without a Google Fonts network request; self-hosted keeps it working offline/behind firewalls |
+
+Everything else (icons, charts, forms, toasts) stays on what's already installed (`lucide-react`, `recharts`, `react-hook-form`, `zod`) — no need to replace working pieces.
+
+Decision needed from you: keep the existing hand-rolled `ToastContext` (just restyle it) or swap to `sonner`? **Recommendation: keep it** — it's ~50 lines, already does everything needed, and swapping buys nothing but churn.
+
+### 7.3 Design foundation (`index.css` / Tailwind theme)
+
+- Define a small set of design tokens via Tailwind v4's CSS-based `@theme`:
+  - Accent color: keep blue as primary brand color but define it as a token (`--color-brand-*`) instead of hardcoded `blue-600` everywhere, so it can be retuned in one place.
+  - Add a `--font-sans` variable pointing at the new variable webfont, applied on `body`.
+  - Standardize radius scale (`rounded-lg` for inputs/buttons, `rounded-xl` for cards/modals — already mostly consistent, just codify it).
+  - Standardize shadow scale: a soft `shadow-sm` for cards, a slightly deeper shadow for modals/popovers.
+- Add `darkMode: "class"` support (Tailwind v4 config) + a `<html data-theme>`/class toggle stored in `localStorage`, surfaced as a toggle in the topbar. Every shared component gets `dark:` variants; pages inherit it for free since they'll be built from shared components. (Stretch goal — see phasing below; can ship without dark mode if you want to de-scope.)
+
+### 7.4 Shared component library (new files under `frontend/src/components/ui/`)
+
+| Component | Replaces | Notes |
+|---|---|---|
+| `Button.jsx` | ad-hoc button classNames | variants: `primary`, `secondary`, `danger`, `ghost`; sizes `sm`/`md`; supports `icon` prop (leading lucide icon) + loading spinner state |
+| `IconButton.jsx` | inline `<button><Icon/></button>` in tables | consistent hit-area, hover/focus ring, optional `tone` (default/danger) |
+| `Input.jsx`, `Textarea.jsx`, `Select.jsx` | raw `<input>`/`<select>` in every form | consistent border/focus ring, built-in label + error message slot, optional leading icon slot (reuses the icon-prefixed pattern already proven in `Login.jsx`), optional prefix text (e.g. `₹` for money fields) |
+| `FormField.jsx` | repeated `<label>...<input/>...{errors.x && <p/>}` blocks | thin wrapper so pages just do `<FormField label="Name" error={errors.name}><input {...register("name")} /></FormField>` |
+| `Card.jsx` | repeated `rounded-xl border border-slate-200 bg-white p-4` divs | takes optional title/icon/action-slot header |
+| `Badge.jsx` | `StatusBadge.jsx` (generalize it) | status/stock/tone badges reused beyond just active/inactive |
+| `Dropdown.jsx` | none yet | Headless UI `Menu`-based kebab menu for table row actions once a row needs 3+ actions (Products already has Edit/Ledger/Activate) |
+| `Modal.jsx` (rewrite in place) | current `Modal.jsx` | swap to Headless UI `Dialog` + `Transition` for backdrop-blur fade + panel scale-in; keep the same prop API (`open/onClose/title/children/maxWidth`) so no page call-sites need to change |
+| `EmptyState.jsx` | inline "No records found" strings | icon + short message + optional CTA button (e.g. "No products yet — Add your first product") |
+| `Skeleton.jsx` | `Loading...` text | `animate-pulse` shaped placeholders (table-row skeleton, stat-card skeleton, chart skeleton) so loading states preserve layout instead of collapsing |
+| `PageHeader.jsx` | repeated `<h1>+<p>+action button` block at the top of every page | title, subtitle, breadcrumb-ish context, right-aligned action slot |
+
+Migration approach: build these once, then convert pages one at a time (Products first as the reference implementation since it's the most form-heavy, then roll the pattern out) — never a big-bang rewrite of all pages in one commit.
+
+### 7.5 Page-by-page changes
+
+- **AppLayout / Sidebar / Topbar** — add active-item indicator as a left accent bar + soft background glow (currently just a background color swap); topbar gets a user avatar-initials circle + Headless UI `Menu` dropdown (Profile/Logout) instead of a bare Logout button; add the dark-mode toggle here; add subtle slide-in `motion` transition for the mobile drawer (currently instant).
+- **Login** — already the strongest page visually; minor polish only (webfont, animated gradient panel accent, button hover lift).
+- **Dashboard** — restructure the 12 `StatCard`s into a hierarchy: 4 "hero" KPI cards (Today's Sales/Profit, Month Sales, Low Stock Alerts) at larger size with icon badge + trend arrow, the rest demoted into a denser secondary grid or a collapsible "More metrics" section; animate numbers counting up on load via `motion`; give the sales trend chart a gradient area fill instead of a flat line; recent-sales/low-stock/best-sellers lists get real icons per row (payment method icon, category icon) instead of plain text rows.
+- **Products, Categories, Suppliers, Purchases, Sales, Stock Adjustments, Expenses** — all their create/edit modals get rebuilt on top of `FormField`/`Input`/`Select`/`Textarea`/`Button`; money fields get a `₹` prefix icon slot; table row actions consolidate into the `Dropdown` kebab menu once there are 3+ actions; empty/loading states use `EmptyState`/`Skeleton`.
+- **Reports** — likely the most "spreadsheet-y" page today; give report type selection cards icons, and export buttons get a `Button` `icon` variant (Download icon).
+- **Receipt** — keep print-friendly layout as-is (this is a print target, not a dashboard page) but tidy spacing/typography to match the new font.
+- **Settings** — form fields move to shared `Input`/`Select`, toggle switches (if any) become Headless UI `Switch`.
+- **NotFound** — small illustration/icon + "Back to dashboard" `Button`, replacing whatever plain text is there now.
+
+### 7.6 Icon usage guidelines
+
+- Keep `lucide-react` as the single icon set app-wide (already the case) — never mix in a second icon library, for visual consistency.
+- Use icons for: nav items (done), stat card badges (done), form field affordances (done in Login, extend to money/search/date fields elsewhere), status/tone badges, empty states, toasts (done), row action buttons, dropdown menu items, page header context, dark-mode toggle (Sun/Moon).
+- Icon sizing convention: `h-3.5 w-3.5` inline-with-text, `h-4 w-4` buttons/inputs, `h-5 w-5` headers/modals, `h-8 w-8`+ inside colored badge containers — codify this instead of ad-hoc sizes.
+
+### 7.7 Execution order
+
+1. Install new deps (`@headlessui/react`, `motion`, font package); wire font + theme tokens in `index.css`.
+2. Build the `components/ui/` primitives (Button, Input, Select, Textarea, FormField, Card, Badge, EmptyState, Skeleton, PageHeader).
+3. Rebuild `Modal.jsx` on Headless UI `Dialog` (in place, same API) — every page using `<Modal>` gets the animation for free immediately.
+4. Rebuild `AppLayout.jsx` (sidebar accent, topbar avatar menu, mobile drawer transition, dark-mode toggle).
+5. Convert `Products.jsx` fully to the new primitives as the reference page — pause here for your review before repeating the pattern.
+6. Roll the same conversion across Categories, Suppliers, Purchases, Sales, Stock Adjustments, Expenses, Reports, Settings.
+7. Dashboard visual hierarchy + chart polish + row icons.
+8. Final pass: NotFound, Receipt typography, dark-mode spot-check across every page, responsive/mobile check.
+
+Each step ships as its own commit/checkpoint so functionality can be verified (forms still submit correctly, validation still fires) before moving to the next page — no behavior changes, styling/structure only.
+
+### 7.8 Non-goals
+
+- No changes to API contracts, routes, validation rules, or business logic.
+- No new state-management library — existing `useState`/context patterns stay.
+- No CSS-in-JS or component-kit lock-in (e.g. MUI, Ant Design) — everything layers on top of the existing Tailwind setup.
