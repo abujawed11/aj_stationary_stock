@@ -2,12 +2,20 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Plus, ArrowDownCircle, ArrowUpCircle, SlidersHorizontal } from "lucide-react";
 import stockAdjustmentApi from "../api/stockAdjustmentApi";
 import productApi from "../api/productApi";
 import Table from "../components/Table";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import Select from "../components/ui/Select";
+import Textarea from "../components/ui/Textarea";
+import FormField from "../components/ui/FormField";
+import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { formatDateTime } from "../utils/currency";
 import { selectOnFocus } from "../utils/formHelpers";
 import { useToast } from "../context/ToastContext";
@@ -118,25 +126,34 @@ export default function StockAdjustments() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Stock Adjustments</h1>
-          <p className="text-sm text-slate-500">Manually add or deduct stock with a recorded reason</p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" />
-          New Adjustment
-        </button>
-      </div>
+      <PageHeader
+        title="Stock Adjustments"
+        subtitle="Manually add or deduct stock with a recorded reason"
+        action={
+          <Button icon={Plus} onClick={openCreate}>
+            New Adjustment
+          </Button>
+        }
+      />
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
       <div className="mt-4">
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <TableSkeleton columns={columns.length} />
+        ) : adjustments.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white">
+            <EmptyState
+              icon={SlidersHorizontal}
+              title="No stock adjustments yet"
+              message="Record damages, losses, or corrections here."
+              action={
+                <Button icon={Plus} onClick={openCreate}>
+                  New Adjustment
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <>
             <Table columns={columns} data={adjustments} />
@@ -147,90 +164,56 @@ export default function StockAdjustments() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Stock Adjustment" maxWidth="max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Product</label>
-            <select
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("productId")}
-            >
+          <FormField
+            label="Product"
+            error={errors.productId}
+            hint={selectedProduct ? `Current stock: ${selectedProduct.currentStock} ${selectedProduct.unit}` : undefined}
+          >
+            <Select error={errors.productId} {...register("productId")}>
               <option value="">Select product</option>
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} ({p.sku})
                 </option>
               ))}
-            </select>
-            {selectedProduct && (
-              <p className="mt-1 text-xs text-slate-500">Current stock: {selectedProduct.currentStock} {selectedProduct.unit}</p>
-            )}
-            {errors.productId && <p className="mt-1 text-xs text-red-600">{errors.productId.message}</p>}
-          </div>
+            </Select>
+          </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Adjustment Type</label>
-              <select
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("adjustmentType")}
-              >
+            <FormField label="Adjustment Type">
+              <Select {...register("adjustmentType")}>
                 {ADJUSTMENT_TYPES.map((t) => (
                   <option key={t} value={t}>
                     {t.replace(/_/g, " ")}
                   </option>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Direction</label>
-              <select
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("direction")}
-              >
+              </Select>
+            </FormField>
+            <FormField label="Direction">
+              <Select {...register("direction")}>
                 <option value="IN">IN (add stock)</option>
                 <option value="OUT">OUT (remove stock)</option>
-              </select>
-            </div>
+              </Select>
+            </FormField>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Quantity</label>
-            <input
-              type="number"
-              min="1"
-              onFocus={selectOnFocus}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("quantity")}
-            />
-            {errors.quantity && <p className="mt-1 text-xs text-red-600">{errors.quantity.message}</p>}
-          </div>
+          <FormField label="Quantity" error={errors.quantity}>
+            <Input type="number" min="1" onFocus={selectOnFocus} error={errors.quantity} {...register("quantity")} />
+          </FormField>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Reason</label>
-            <textarea
-              rows={3}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("reason")}
-            />
-            {errors.reason && <p className="mt-1 text-xs text-red-600">{errors.reason.message}</p>}
-          </div>
+          <FormField label="Reason" error={errors.reason}>
+            <Textarea rows={3} error={errors.reason} {...register("reason")} />
+          </FormField>
 
           {formError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>}
 
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-            >
+            </Button>
+            <Button type="submit" loading={isSubmitting}>
               Save Adjustment
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

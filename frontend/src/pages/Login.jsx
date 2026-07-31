@@ -35,24 +35,24 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen">
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-blue-700 to-slate-900 p-12 text-white lg:flex">
+      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-gradient-to-br from-brand-700 to-slate-900 p-12 text-white lg:flex">
         <div>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/10">
-              <Boxes className="h-6 w-6 text-blue-200" />
+              <Boxes className="h-6 w-6 text-brand-200" />
             </div>
             <span className="text-lg font-semibold">AJ Stationery</span>
           </div>
 
           <div className="mt-24">
             <h1 className="text-4xl font-bold">AJ Stationery</h1>
-            <p className="mt-3 max-w-sm text-blue-100">
+            <p className="mt-3 max-w-sm text-brand-100">
               Stock and sales management for your shop.
             </p>
           </div>
 
           <div className="mt-10 w-full max-w-sm rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-blue-200">
+            <p className="text-xs font-medium uppercase tracking-wide text-brand-200">
               Today's overview
             </p>
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -74,7 +74,7 @@ export default function Login() {
           </div>
         </div>
 
-        <p className="text-xs text-blue-200/70">© 2026 AJ Stationery</p>
+        <p className="text-xs text-brand-200/70">© 2026 AJ Stationery</p>
       </div>
 
       <div className="flex w-full items-center justify-center bg-slate-50 px-4 lg:w-1/2">
@@ -96,7 +96,7 @@ export default function Login() {
                   type="text"
                   autoComplete="username"
                   placeholder="admin"
-                  className="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-10 pr-3 text-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  className="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-10 pr-3 text-sm focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500"
                   {...register("username")}
                 />
               </div>
@@ -116,7 +116,7 @@ export default function Login() {
                   type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   placeholder="••••••••"
-                  className="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-10 pr-10 text-sm focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
+                  className="w-full rounded-lg border border-slate-300 bg-slate-50 py-2.5 pl-10 pr-10 text-sm focus:border-brand-500 focus:bg-white focus:outline-none focus:ring-1 focus:ring-brand-500 [&::-ms-reveal]:hidden [&::-ms-clear]:hidden"
                   {...register("password")}
                 />
                 <button
@@ -140,7 +140,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 py-2.5 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
             >
               {isSubmitting ? "Signing in..." : "Sign in"}
               {!isSubmitting && <ArrowRight className="h-4 w-4" />}

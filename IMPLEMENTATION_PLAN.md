@@ -279,7 +279,19 @@ Migration approach: build these once, then convert pages one at a time (Products
 - [x] Step 3: rewrote `Modal.jsx` on Headless UI `Dialog`+`Transition` (backdrop blur + fade/scale, same prop API — no page call-sites changed).
 - [x] Step 4: rewrote `AppLayout.jsx` — active nav item now has a left accent bar, topbar Logout button replaced with an avatar-initials dropdown menu (Headless UI `Menu`), mobile drawer now slides in/out instead of appearing instantly.
 - [x] Step 5: converted `Products.jsx` to the new primitives (reference page) — search input has a leading search icon, price fields show a ₹ prefix, table loading state is now a shaped skeleton instead of "Loading...", empty state has an icon + "Add Product" CTA, stock ledger rows get up/down arrow icons.
-- [ ] Not yet: steps 6–8 (remaining pages, dashboard hierarchy, final responsive/typography pass).
+- [x] Step 6: converted Categories, Suppliers, Purchases, Sales, Stock Adjustments, Expenses, Reports, Settings to the shared primitives; `ConfirmDialog` now uses `Button`; `Pagination`/`ProductSearchSelect` recolored to the brand token.
+- [x] Step 7: Dashboard restructured — 4 animated hero KPI cards (Today's Sales/Profit, Month Sales, Low Stock Alerts) using a new `HeroStatCard` + `AnimatedNumber` (count-up via `motion`), remaining metrics demoted to a denser secondary grid, sales chart switched to a gradient-filled `AreaChart`, and recent-sales/low-stock/best-sellers/category rows all got icon badges.
+- [x] Step 8: `NotFound` and `Receipt` moved onto `Button`; `Login` recolored from raw `blue-*` to the `brand-*` token for consistency (no visual change — brand-600 = blue-600). Full `vite build` and `oxlint` pass clean across the whole app (only 2 pre-existing, unrelated warnings).
+
+**All of Phase 7 (steps 1–8) is now implemented.** Dark mode remains explicitly out of scope per your call above.
+
+**To verify in the browser (`npm run dev`), beyond the Products-page checks already listed:**
+1. Every list page (Categories, Suppliers, Purchases, Sales, Stock Adjustments, Expenses) — search/filter inputs have icons where relevant, price fields show ₹ prefixes, empty-filter states show an icon + message instead of blank tables, and loading shows a skeleton instead of "Loading...".
+2. Sales page: creating a sale, returning items, recording a payment, and cancelling a sale should all still work exactly as before — only the visuals changed.
+3. Reports page: report-type buttons now have icons; switching type and clicking Apply/Export should behave as before.
+4. Dashboard: top row should show 4 larger cards with numbers animating up on load; the sales trend chart should have a light blue gradient fill under the line instead of a flat line.
+5. 404 page (visit any bad URL) and a sale's printable receipt page should still render correctly.
+6. Resize the browser down to a phone width and check the sidebar collapses into the hamburger/drawer menu correctly on every page.
 
 **To verify in the browser (`npm run dev`):**
 1. Sidebar — active page should show a small blue accent bar on the left of its nav item.

@@ -2,12 +2,20 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Search, Tags } from "lucide-react";
 import categoryApi from "../api/categoryApi";
 import Table from "../components/Table";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
+import Button from "../components/ui/Button";
+import IconButton from "../components/ui/IconButton";
+import Input from "../components/ui/Input";
+import Textarea from "../components/ui/Textarea";
+import FormField from "../components/ui/FormField";
+import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { useToast } from "../context/ToastContext";
 
 const categorySchema = z.object({
@@ -110,13 +118,11 @@ export default function Categories() {
       key: "actions",
       header: "Actions",
       render: (row) => (
-        <div className="flex items-center gap-3">
-          <button onClick={() => openEdit(row)} className="text-slate-500 hover:text-blue-600">
-            <Pencil className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-1">
+          <IconButton icon={Pencil} title="Edit" onClick={() => openEdit(row)} />
           <button
             onClick={() => toggleStatus(row)}
-            className="text-xs font-medium text-blue-600 hover:underline"
+            className="rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
           >
             {row.isActive ? "Deactivate" : "Activate"}
           </button>
@@ -127,27 +133,23 @@ export default function Categories() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Categories</h1>
-          <p className="text-sm text-slate-500">Organize your products into categories</p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" />
-          Add Category
-        </button>
-      </div>
+      <PageHeader
+        title="Categories"
+        subtitle="Organize your products into categories"
+        action={
+          <Button icon={Plus} onClick={openCreate}>
+            Add Category
+          </Button>
+        }
+      />
 
-      <div className="mt-4">
-        <input
+      <div className="mt-4 w-full max-w-xs">
+        <Input
+          icon={Search}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (setPage(1), load())}
           placeholder="Search by name..."
-          className="w-full max-w-xs rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
 
@@ -155,7 +157,20 @@ export default function Categories() {
 
       <div className="mt-4">
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <TableSkeleton columns={columns.length} />
+        ) : categories.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white">
+            <EmptyState
+              icon={Tags}
+              title="No categories found"
+              message="Add your first category to start organizing products."
+              action={
+                <Button icon={Plus} onClick={openCreate}>
+                  Add Category
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <>
             <Table columns={columns} data={categories} />
@@ -166,38 +181,20 @@ export default function Categories() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Category" : "Add Category"}>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Name</label>
-            <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("name")}
-            />
-            {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Description</label>
-            <textarea
-              rows={3}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("description")}
-            />
-          </div>
+          <FormField label="Name" error={errors.name}>
+            <Input error={errors.name} {...register("name")} />
+          </FormField>
+          <FormField label="Description">
+            <Textarea rows={3} {...register("description")} />
+          </FormField>
           {formError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>}
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-            >
+            </Button>
+            <Button type="submit" loading={isSubmitting}>
               {editing ? "Save Changes" : "Create"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

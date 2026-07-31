@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, Eye, IndianRupee } from "lucide-react";
+import { Plus, Trash2, Eye, IndianRupee, ShoppingCart } from "lucide-react";
 import purchaseApi from "../api/purchaseApi";
 import supplierApi from "../api/supplierApi";
 import productApi from "../api/productApi";
@@ -11,6 +11,16 @@ import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ProductSearchSelect from "../components/ProductSearchSelect";
+import Button from "../components/ui/Button";
+import IconButton from "../components/ui/IconButton";
+import Input from "../components/ui/Input";
+import Select from "../components/ui/Select";
+import Textarea from "../components/ui/Textarea";
+import FormField from "../components/ui/FormField";
+import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
+import Badge from "../components/ui/Badge";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { selectOnFocus } from "../utils/formHelpers";
 import { formatCurrency, formatDate } from "../utils/currency";
 import { useToast } from "../context/ToastContext";
@@ -37,12 +47,8 @@ const purchaseSchema = z.object({
 });
 
 function PaymentStatusBadge({ status }) {
-  const styles = {
-    PAID: "bg-emerald-100 text-emerald-700",
-    PARTIALLY_PAID: "bg-amber-100 text-amber-700",
-    UNPAID: "bg-red-100 text-red-700",
-  };
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status]}`}>{status.replace("_", " ")}</span>;
+  const tones = { PAID: "emerald", PARTIALLY_PAID: "amber", UNPAID: "red" };
+  return <Badge tone={tones[status]}>{status.replace("_", " ")}</Badge>;
 }
 
 export default function Purchases() {
@@ -206,20 +212,16 @@ export default function Purchases() {
     {
       key: "status",
       header: "Status",
-      render: (row) => (
-        <span className={row.status === "CANCELLED" ? "text-red-600" : "text-emerald-600"}>{row.status}</span>
-      ),
+      render: (row) => <Badge tone={row.status === "CANCELLED" ? "red" : "emerald"}>{row.status}</Badge>,
     },
     {
       key: "actions",
       header: "Actions",
       render: (row) => (
-        <div className="flex items-center gap-3">
-          <button onClick={() => openDetail(row)} className="text-slate-500 hover:text-blue-600">
-            <Eye className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-1">
+          <IconButton icon={Eye} title="View" onClick={() => openDetail(row)} />
           {row.status === "COMPLETED" && (
-            <button onClick={() => setCancelTarget(row)} className="text-xs font-medium text-red-600 hover:underline">
+            <button onClick={() => setCancelTarget(row)} className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50">
               Cancel
             </button>
           )}
@@ -230,25 +232,34 @@ export default function Purchases() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Purchases</h1>
-          <p className="text-sm text-slate-500">Record stock purchased from suppliers</p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" />
-          New Purchase
-        </button>
-      </div>
+      <PageHeader
+        title="Purchases"
+        subtitle="Record stock purchased from suppliers"
+        action={
+          <Button icon={Plus} onClick={openCreate}>
+            New Purchase
+          </Button>
+        }
+      />
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
       <div className="mt-4">
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <TableSkeleton columns={columns.length} />
+        ) : purchases.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white">
+            <EmptyState
+              icon={ShoppingCart}
+              title="No purchases yet"
+              message="Record a purchase to start adding stock."
+              action={
+                <Button icon={Plus} onClick={openCreate}>
+                  New Purchase
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <>
             <Table columns={columns} data={purchases} />
@@ -260,40 +271,28 @@ export default function Purchases() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Purchase" maxWidth="max-w-4xl">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Supplier (optional)</label>
-              <select
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("supplierId")}
-              >
+            <FormField label="Supplier (optional)">
+              <Select {...register("supplierId")}>
                 <option value="">No supplier</option>
                 {suppliers.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Invoice Number</label>
-              <input
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("invoiceNumber")}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Payment Method</label>
-              <select
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("paymentMethod")}
-              >
+              </Select>
+            </FormField>
+            <FormField label="Invoice Number">
+              <Input {...register("invoiceNumber")} />
+            </FormField>
+            <FormField label="Payment Method">
+              <Select {...register("paymentMethod")}>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>
                     {m.replace("_", " ")}
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormField>
           </div>
 
           <div>
@@ -302,7 +301,7 @@ export default function Purchases() {
               <button
                 type="button"
                 onClick={() => append({ productId: "", quantity: 1, unitCost: 0 })}
-                className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+                className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add item
@@ -334,26 +333,11 @@ export default function Purchases() {
                         />
                       )}
                     />
-                    <input
-                      type="number"
-                      min="1"
-                      aria-label="Quantity"
-                      onFocus={selectOnFocus}
-                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      {...register(`items.${index}.quantity`)}
-                    />
-                    <span className="flex h-full items-center rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
+                    <Input type="number" min="1" aria-label="Quantity" onFocus={selectOnFocus} {...register(`items.${index}.quantity`)} />
+                    <span className="flex h-full items-center rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-500">
                       {selectedProduct?.unit || "-"}
                     </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      aria-label="Unit cost"
-                      onFocus={selectOnFocus}
-                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      {...register(`items.${index}.unitCost`)}
-                    />
+                    <Input type="number" min="0" step="0.01" aria-label="Unit cost" onFocus={selectOnFocus} {...register(`items.${index}.unitCost`)} />
                     <span className="text-sm text-slate-600">{formatCurrency(lineTotal)}</span>
                     <button
                       type="button"
@@ -372,71 +356,34 @@ export default function Purchases() {
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Discount (₹)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                onFocus={selectOnFocus}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("discount")}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Additional Cost (₹)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                onFocus={selectOnFocus}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("additionalCost")}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Paid Amount (₹)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                onFocus={selectOnFocus}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("paidAmount")}
-              />
-            </div>
+            <FormField label="Discount">
+              <Input type="number" min="0" step="0.01" prefix="₹" onFocus={selectOnFocus} {...register("discount")} />
+            </FormField>
+            <FormField label="Additional Cost">
+              <Input type="number" min="0" step="0.01" prefix="₹" onFocus={selectOnFocus} {...register("additionalCost")} />
+            </FormField>
+            <FormField label="Paid Amount">
+              <Input type="number" min="0" step="0.01" prefix="₹" onFocus={selectOnFocus} {...register("paidAmount")} />
+            </FormField>
             <div className="flex flex-col justify-end">
               <p className="text-xs text-slate-500">Subtotal: {formatCurrency(subtotal)}</p>
               <p className="text-sm font-semibold text-slate-800">Total: {formatCurrency(totalAmount)}</p>
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Notes</label>
-            <textarea
-              rows={2}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("notes")}
-            />
-          </div>
+          <FormField label="Notes">
+            <Textarea rows={2} {...register("notes")} />
+          </FormField>
 
           {formError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>}
 
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-            >
+            </Button>
+            <Button type="submit" loading={isSubmitting}>
               Complete Purchase
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -468,21 +415,14 @@ export default function Purchases() {
             </div>
             <div className="flex flex-wrap justify-end gap-2">
               {detail.status !== "CANCELLED" && Number(detail.dueAmount) > 0 && (
-                <button
-                  onClick={openPaymentModal}
-                  className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <IndianRupee className="h-4 w-4" />
+                <Button variant="secondary" icon={IndianRupee} onClick={openPaymentModal}>
                   Record Payment
-                </button>
+                </Button>
               )}
               {detail.status === "COMPLETED" && (
-                <button
-                  onClick={() => setCancelTarget(detail)}
-                  className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-                >
+                <Button variant="danger" onClick={() => setCancelTarget(detail)}>
                   Cancel Purchase
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -495,47 +435,33 @@ export default function Purchases() {
             <p className="text-slate-500">
               Due amount: <span className="font-semibold text-slate-800">{formatCurrency(detail.dueAmount)}</span>
             </p>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Amount Paid (₹)</label>
-              <input
+            <FormField label="Amount Paid">
+              <Input
                 type="number"
                 min="0"
                 step="0.01"
                 max={Number(detail.dueAmount)}
+                prefix="₹"
                 onFocus={selectOnFocus}
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(Number(e.target.value))}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Payment Method</label>
-              <select
-                value={paymentMethodInput}
-                onChange={(e) => setPaymentMethodInput(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
+            </FormField>
+            <FormField label="Payment Method">
+              <Select value={paymentMethodInput} onChange={(e) => setPaymentMethodInput(e.target.value)}>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>{m.replace("_", " ")}</option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormField>
 
             {paymentError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{paymentError}</p>}
 
             <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setPaymentModalOpen(false)}
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
+              <Button variant="secondary" onClick={() => setPaymentModalOpen(false)}>
                 Cancel
-              </button>
-              <button
-                onClick={submitPayment}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                Record Payment
-              </button>
+              </Button>
+              <Button onClick={submitPayment}>Record Payment</Button>
             </div>
           </div>
         )}

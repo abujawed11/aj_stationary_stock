@@ -1,21 +1,28 @@
 import { useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Receipt, TrendingUp, Package, Boxes, ShoppingCart, Wallet, CreditCard } from "lucide-react";
 import reportApi from "../api/reportApi";
 import categoryApi from "../api/categoryApi";
 import supplierApi from "../api/supplierApi";
 import productApi from "../api/productApi";
 import Table from "../components/Table";
+import Button from "../components/ui/Button";
+import Input from "../components/ui/Input";
+import Select from "../components/ui/Select";
+import FormField from "../components/ui/FormField";
+import PageHeader from "../components/ui/PageHeader";
+import Card from "../components/ui/Card";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { formatCurrency, formatDate } from "../utils/currency";
 import { useToast } from "../context/ToastContext";
 
 const REPORT_TYPES = [
-  { value: "SALES", label: "Sales" },
-  { value: "PROFIT", label: "Profit" },
-  { value: "PRODUCTS", label: "Product Performance" },
-  { value: "STOCK", label: "Stock Valuation" },
-  { value: "PURCHASES", label: "Purchases" },
-  { value: "EXPENSES", label: "Expenses" },
-  { value: "PAYMENT_METHODS", label: "Payment Methods" },
+  { value: "SALES", label: "Sales", icon: Receipt },
+  { value: "PROFIT", label: "Profit", icon: TrendingUp },
+  { value: "PRODUCTS", label: "Product Performance", icon: Package },
+  { value: "STOCK", label: "Stock Valuation", icon: Boxes },
+  { value: "PURCHASES", label: "Purchases", icon: ShoppingCart },
+  { value: "EXPENSES", label: "Expenses", icon: Wallet },
+  { value: "PAYMENT_METHODS", label: "Payment Methods", icon: CreditCard },
 ];
 
 const PAYMENT_METHODS = ["CASH", "UPI", "BANK_TRANSFER", "OTHER"];
@@ -127,176 +134,148 @@ export default function Reports() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Reports</h1>
-          <p className="text-sm text-slate-500">Analyze sales, profit, stock, purchases, and expenses</p>
-        </div>
-        <button
-          onClick={handleExport}
-          className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-        >
-          <Download className="h-4 w-4" />
-          Export CSV
-        </button>
-      </div>
+      <PageHeader
+        title="Reports"
+        subtitle="Analyze sales, profit, stock, purchases, and expenses"
+        action={
+          <Button variant="secondary" icon={Download} onClick={handleExport}>
+            Export CSV
+          </Button>
+        }
+      />
 
       <div className="mt-4 flex flex-wrap gap-2">
         {REPORT_TYPES.map((t) => (
           <button
             key={t.value}
             onClick={() => setReportType(t.value)}
-            className={`rounded-md px-3 py-1.5 text-sm font-medium ${
-              reportType === t.value ? "bg-blue-600 text-white" : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+              reportType === t.value ? "bg-brand-600 text-white" : "border border-slate-300 text-slate-600 hover:bg-slate-50"
             }`}
           >
+            <t.icon className="h-3.5 w-3.5" />
             {t.label}
           </button>
         ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4">
-        {reportType !== "STOCK" && (
-          <>
-            <div>
-              <label className="block text-xs text-slate-500">From</label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500">To</label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
-          </>
-        )}
+      <Card className="mt-4">
+        <div className="flex flex-wrap items-end gap-3">
+          {reportType !== "STOCK" && (
+            <>
+              <FormField label="From">
+                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              </FormField>
+              <FormField label="To">
+                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+              </FormField>
+            </>
+          )}
 
-        {reportType === "SALES" && (
-          <>
-            <div>
-              <label className="block text-xs text-slate-500">Payment Method</label>
-              <select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                <option value="">All</option>
-                {PAYMENT_METHODS.map((m) => (
-                  <option key={m} value={m}>{m.replace("_", " ")}</option>
+          {reportType === "SALES" && (
+            <>
+              <FormField label="Payment Method">
+                <Select value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+                  <option value="">All</option>
+                  {PAYMENT_METHODS.map((m) => (
+                    <option key={m} value={m}>{m.replace("_", " ")}</option>
+                  ))}
+                </Select>
+              </FormField>
+              <FormField label="Group By">
+                <Select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+                  <option value="">None</option>
+                  <option value="day">Day</option>
+                  <option value="month">Month</option>
+                </Select>
+              </FormField>
+            </>
+          )}
+
+          {reportType === "PROFIT" && (
+            <FormField label="Product">
+              <Select value={productId} onChange={(e) => setProductId(e.target.value)}>
+                <option value="">All products</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500">Group By</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                <option value="">None</option>
-                <option value="day">Day</option>
-                <option value="month">Month</option>
-              </select>
-            </div>
-          </>
-        )}
+              </Select>
+            </FormField>
+          )}
 
-        {reportType === "PROFIT" && (
-          <div>
-            <label className="block text-xs text-slate-500">Product</label>
-            <select value={productId} onChange={(e) => setProductId(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-              <option value="">All products</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
+          {reportType === "PRODUCTS" && (
+            <>
+              <FormField label="Mode">
+                <Select value={mode} onChange={(e) => setMode(e.target.value)}>
+                  <option value="best-selling">Best-selling</option>
+                  <option value="slow-moving">Slow-moving</option>
+                  <option value="low-stock">Low stock</option>
+                  <option value="out-of-stock">Out of stock</option>
+                </Select>
+              </FormField>
+              <FormField label="Category">
+                <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                  <option value="">All categories</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </Select>
+              </FormField>
+            </>
+          )}
 
-        {reportType === "PRODUCTS" && (
-          <>
-            <div>
-              <label className="block text-xs text-slate-500">Mode</label>
-              <select value={mode} onChange={(e) => setMode(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                <option value="best-selling">Best-selling</option>
-                <option value="slow-moving">Slow-moving</option>
-                <option value="low-stock">Low stock</option>
-                <option value="out-of-stock">Out of stock</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500">Category</label>
-              <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
+          {reportType === "STOCK" && (
+            <FormField label="Category">
+              <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
                 <option value="">All categories</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
-              </select>
-            </div>
-          </>
-        )}
+              </Select>
+            </FormField>
+          )}
 
-        {reportType === "STOCK" && (
-          <div>
-            <label className="block text-xs text-slate-500">Category</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-              <option value="">All categories</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
+          {reportType === "PURCHASES" && (
+            <>
+              <FormField label="Supplier">
+                <Select value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
+                  <option value="">All suppliers</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </Select>
+              </FormField>
+              <FormField label="Group By">
+                <Select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+                  <option value="">None</option>
+                  <option value="supplier">Supplier</option>
+                </Select>
+              </FormField>
+            </>
+          )}
 
-        {reportType === "PURCHASES" && (
-          <>
-            <div>
-              <label className="block text-xs text-slate-500">Supplier</label>
-              <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                <option value="">All suppliers</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500">Group By</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                <option value="">None</option>
-                <option value="supplier">Supplier</option>
-              </select>
-            </div>
-          </>
-        )}
+          {reportType === "EXPENSES" && (
+            <>
+              <FormField label="Category">
+                <Select value={expenseCategory} onChange={(e) => setExpenseCategory(e.target.value)}>
+                  <option value="">All categories</option>
+                  {EXPENSE_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
+                  ))}
+                </Select>
+              </FormField>
+              <FormField label="Group By">
+                <Select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+                  <option value="">None</option>
+                  <option value="category">Category</option>
+                </Select>
+              </FormField>
+            </>
+          )}
 
-        {reportType === "EXPENSES" && (
-          <>
-            <div>
-              <label className="block text-xs text-slate-500">Category</label>
-              <select value={expenseCategory} onChange={(e) => setExpenseCategory(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                <option value="">All categories</option>
-                {EXPENSE_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c.replace(/_/g, " ")}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-500">Group By</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)} className="rounded-md border border-slate-300 px-3 py-2 text-sm">
-                <option value="">None</option>
-                <option value="category">Category</option>
-              </select>
-            </div>
-          </>
-        )}
-
-        <button
-          onClick={runReport}
-          className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          Apply
-        </button>
-      </div>
+          <Button onClick={runReport}>Apply</Button>
+        </div>
+      </Card>
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
@@ -312,7 +291,7 @@ export default function Reports() {
       )}
 
       <div className="mt-4">
-        {loading ? <p className="text-sm text-slate-400">Loading...</p> : <Table columns={columns} data={dataForTable} keyField={columns[0]?.key || "id"} />}
+        {loading ? <TableSkeleton columns={columns.length || 5} /> : <Table columns={columns} data={dataForTable} keyField={columns[0]?.key || "id"} />}
       </div>
     </div>
   );
@@ -320,7 +299,7 @@ export default function Reports() {
 
 function SummaryPill({ label, value }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm">
+    <div className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm shadow-card">
       <span className="text-slate-400">{label}: </span>
       <span className="font-semibold text-slate-800">{value}</span>
     </div>

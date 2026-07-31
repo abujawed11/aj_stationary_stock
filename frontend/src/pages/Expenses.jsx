@@ -2,12 +2,21 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, Wallet } from "lucide-react";
 import expenseApi from "../api/expenseApi";
 import Table from "../components/Table";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
+import Button from "../components/ui/Button";
+import IconButton from "../components/ui/IconButton";
+import Input from "../components/ui/Input";
+import Select from "../components/ui/Select";
+import Textarea from "../components/ui/Textarea";
+import FormField from "../components/ui/FormField";
+import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { formatCurrency, formatDate } from "../utils/currency";
 import { selectOnFocus } from "../utils/formHelpers";
 import { useToast } from "../context/ToastContext";
@@ -153,13 +162,9 @@ export default function Expenses() {
       key: "actions",
       header: "Actions",
       render: (row) => (
-        <div className="flex items-center gap-3">
-          <button onClick={() => openEdit(row)} className="text-slate-500 hover:text-blue-600" title="Edit">
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button onClick={() => setDeleteTarget(row)} className="text-slate-500 hover:text-red-600" title="Delete">
-            <Trash2 className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-1">
+          <IconButton icon={Pencil} title="Edit" onClick={() => openEdit(row)} />
+          <IconButton icon={Trash2} tone="danger" title="Delete" onClick={() => setDeleteTarget(row)} />
         </div>
       ),
     },
@@ -167,65 +172,62 @@ export default function Expenses() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Expenses</h1>
-          <p className="text-sm text-slate-500">Track shop expenses like rent, electricity, and salaries</p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" />
-          Add Expense
-        </button>
-      </div>
+      <PageHeader
+        title="Expenses"
+        subtitle="Track shop expenses like rent, electricity, and salaries"
+        action={
+          <Button icon={Plus} onClick={openCreate}>
+            Add Expense
+          </Button>
+        }
+      />
 
       <div className="mt-4 flex flex-wrap items-end gap-3">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && (setPage(1), load())}
-          placeholder="Search description..."
-          className="w-56 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        />
-        <select
-          value={category}
-          onChange={(e) => (setPage(1), setCategory(e.target.value))}
-          className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="">All categories</option>
-          {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c.replace(/_/g, " ")}
-            </option>
-          ))}
-        </select>
-        <div>
-          <label className="block text-xs text-slate-500">From</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => (setPage(1), setStartDate(e.target.value))}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+        <div className="w-56">
+          <Input
+            icon={Search}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (setPage(1), load())}
+            placeholder="Search description..."
           />
         </div>
-        <div>
-          <label className="block text-xs text-slate-500">To</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => (setPage(1), setEndDate(e.target.value))}
-            className="rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          />
+        <div className="w-48">
+          <Select value={category} onChange={(e) => (setPage(1), setCategory(e.target.value))}>
+            <option value="">All categories</option>
+            {CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c.replace(/_/g, " ")}
+              </option>
+            ))}
+          </Select>
         </div>
+        <FormField label="From">
+          <Input type="date" value={startDate} onChange={(e) => (setPage(1), setStartDate(e.target.value))} />
+        </FormField>
+        <FormField label="To">
+          <Input type="date" value={endDate} onChange={(e) => (setPage(1), setEndDate(e.target.value))} />
+        </FormField>
       </div>
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
       <div className="mt-4">
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <TableSkeleton columns={columns.length} />
+        ) : expenses.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white">
+            <EmptyState
+              icon={Wallet}
+              title="No expenses found"
+              message="Add your first expense to start tracking costs."
+              action={
+                <Button icon={Plus} onClick={openCreate}>
+                  Add Expense
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <>
             <Table columns={columns} data={expenses} />
@@ -237,88 +239,48 @@ export default function Expenses() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Expense" : "Add Expense"} maxWidth="max-w-lg">
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Category</label>
-            <select
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("category")}
-            >
+          <FormField label="Category">
+            <Select {...register("category")}>
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>
                   {c.replace(/_/g, " ")}
                 </option>
               ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Payment Method</label>
-            <select
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("paymentMethod")}
-            >
+            </Select>
+          </FormField>
+          <FormField label="Payment Method">
+            <Select {...register("paymentMethod")}>
               {PAYMENT_METHODS.map((m) => (
                 <option key={m} value={m}>
                   {m.replace("_", " ")}
                 </option>
               ))}
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700">Description</label>
-            <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("description")}
-            />
-            {errors.description && <p className="mt-1 text-xs text-red-600">{errors.description.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Amount (₹)</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              onFocus={selectOnFocus}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("amount")}
-            />
-            {errors.amount && <p className="mt-1 text-xs text-red-600">{errors.amount.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Date</label>
-            <input
-              type="date"
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("expenseDate")}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700">Notes (optional)</label>
-            <textarea
-              rows={2}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("notes")}
-            />
-          </div>
+            </Select>
+          </FormField>
+          <FormField label="Description" error={errors.description} className="sm:col-span-2">
+            <Input error={errors.description} {...register("description")} />
+          </FormField>
+          <FormField label="Amount" error={errors.amount}>
+            <Input type="number" min="0" step="0.01" prefix="₹" onFocus={selectOnFocus} error={errors.amount} {...register("amount")} />
+          </FormField>
+          <FormField label="Date">
+            <Input type="date" {...register("expenseDate")} />
+          </FormField>
+          <FormField label="Notes (optional)" className="sm:col-span-2">
+            <Textarea rows={2} {...register("notes")} />
+          </FormField>
 
           {formError && (
             <p className="sm:col-span-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>
           )}
 
           <div className="sm:col-span-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-            >
+            </Button>
+            <Button type="submit" loading={isSubmitting}>
               {editing ? "Save Changes" : "Create"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

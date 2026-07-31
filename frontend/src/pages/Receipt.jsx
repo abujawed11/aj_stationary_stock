@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Printer } from "lucide-react";
 import saleApi from "../api/saleApi";
+import Button from "../components/ui/Button";
 import { formatCurrency, formatDateTime } from "../utils/currency";
 
 export default function Receipt() {
@@ -27,13 +28,9 @@ export default function Receipt() {
   return (
     <div className="mx-auto max-w-md p-6">
       <div className="mb-4 flex justify-end print:hidden">
-        <button
-          onClick={() => window.print()}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <Printer className="h-4 w-4" />
+        <Button icon={Printer} onClick={() => window.print()}>
           Print
-        </button>
+        </Button>
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-6 text-sm">

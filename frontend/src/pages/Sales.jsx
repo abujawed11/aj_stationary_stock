@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, Eye, Printer, Undo2, IndianRupee } from "lucide-react";
+import { Plus, Trash2, Eye, Printer, Undo2, IndianRupee, Receipt as ReceiptIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import saleApi from "../api/saleApi";
 import salesReturnApi from "../api/salesReturnApi";
@@ -12,6 +12,15 @@ import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import ProductSearchSelect from "../components/ProductSearchSelect";
+import Button from "../components/ui/Button";
+import IconButton from "../components/ui/IconButton";
+import Input from "../components/ui/Input";
+import Select from "../components/ui/Select";
+import FormField from "../components/ui/FormField";
+import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
+import Badge from "../components/ui/Badge";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { formatCurrency, formatDateTime } from "../utils/currency";
 import { selectOnFocus } from "../utils/formHelpers";
 import { useToast } from "../context/ToastContext";
@@ -36,12 +45,8 @@ const saleSchema = z.object({
 });
 
 function PaymentStatusBadge({ status }) {
-  const styles = {
-    PAID: "bg-emerald-100 text-emerald-700",
-    PARTIALLY_PAID: "bg-amber-100 text-amber-700",
-    UNPAID: "bg-red-100 text-red-700",
-  };
-  return <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${styles[status]}`}>{status.replace("_", " ")}</span>;
+  const tones = { PAID: "emerald", PARTIALLY_PAID: "amber", UNPAID: "red" };
+  return <Badge tone={tones[status]}>{status.replace("_", " ")}</Badge>;
 }
 
 function SaleStatusLabel({ status }) {
@@ -279,21 +284,13 @@ export default function Sales() {
       key: "actions",
       header: "Actions",
       render: (row) => (
-        <div className="flex items-center gap-3">
-          <button onClick={() => openDetail(row)} className="text-slate-500 hover:text-blue-600" title="View">
-            <Eye className="h-4 w-4" />
-          </button>
+        <div className="flex items-center gap-1">
+          <IconButton icon={Eye} title="View" onClick={() => openDetail(row)} />
           {(row.status === "COMPLETED" || row.status === "PARTIALLY_RETURNED") && (
-            <button
-              onClick={async () => openReturn(await saleApi.getById(row.id))}
-              className="text-slate-500 hover:text-blue-600"
-              title="Return items"
-            >
-              <Undo2 className="h-4 w-4" />
-            </button>
+            <IconButton icon={Undo2} title="Return items" onClick={async () => openReturn(await saleApi.getById(row.id))} />
           )}
           {row.status === "COMPLETED" && (
-            <button onClick={() => setCancelTarget(row)} className="text-xs font-medium text-red-600 hover:underline">
+            <button onClick={() => setCancelTarget(row)} className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50">
               Cancel
             </button>
           )}
@@ -304,25 +301,34 @@ export default function Sales() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Sales</h1>
-          <p className="text-sm text-slate-500">Bill customers and track sales</p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" />
-          New Sale
-        </button>
-      </div>
+      <PageHeader
+        title="Sales"
+        subtitle="Bill customers and track sales"
+        action={
+          <Button icon={Plus} onClick={openCreate}>
+            New Sale
+          </Button>
+        }
+      />
 
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
       <div className="mt-4">
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <TableSkeleton columns={columns.length} />
+        ) : sales.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white">
+            <EmptyState
+              icon={ReceiptIcon}
+              title="No sales yet"
+              message="Bill your first customer to see it here."
+              action={
+                <Button icon={Plus} onClick={openCreate}>
+                  New Sale
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <>
             <Table columns={columns} data={sales} />
@@ -334,33 +340,21 @@ export default function Sales() {
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Sale" maxWidth="max-w-4xl">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Customer Name (optional)</label>
-              <input
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("customerName")}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Customer Phone (optional)</label>
-              <input
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("customerPhone")}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Payment Method</label>
-              <select
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("paymentMethod")}
-              >
+            <FormField label="Customer Name (optional)">
+              <Input {...register("customerName")} />
+            </FormField>
+            <FormField label="Customer Phone (optional)">
+              <Input {...register("customerPhone")} />
+            </FormField>
+            <FormField label="Payment Method">
+              <Select {...register("paymentMethod")}>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>
                     {m.replace("_", " ")}
                   </option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormField>
           </div>
 
           <div>
@@ -369,7 +363,7 @@ export default function Sales() {
               <button
                 type="button"
                 onClick={() => append({ productId: "", quantity: 1, sellingPrice: 0 })}
-                className="flex items-center gap-1 text-xs font-medium text-blue-600 hover:underline"
+                className="flex items-center gap-1 text-xs font-medium text-brand-600 hover:underline"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add item
@@ -405,28 +399,18 @@ export default function Sales() {
                         />
                       )}
                     />
-                    <input
+                    <Input
                       type="number"
                       min="1"
                       aria-label="Quantity"
                       onFocus={selectOnFocus}
-                      className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${
-                        exceedsStock ? "border-red-400 focus:border-red-500 focus:ring-red-500" : "border-slate-300 focus:border-blue-500 focus:ring-blue-500"
-                      }`}
+                      error={exceedsStock}
                       {...register(`items.${index}.quantity`)}
                     />
                     <span className={`text-sm ${exceedsStock ? "text-red-600" : "text-slate-500"}`}>
                       {selectedProduct ? selectedProduct.currentStock : "-"}
                     </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      aria-label="Selling price"
-                      onFocus={selectOnFocus}
-                      className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      {...register(`items.${index}.sellingPrice`)}
-                    />
+                    <Input type="number" min="0" step="0.01" aria-label="Selling price" onFocus={selectOnFocus} {...register(`items.${index}.sellingPrice`)} />
                     <span className="text-sm text-slate-600">{formatCurrency(lineTotal)}</span>
                     <button
                       type="button"
@@ -445,28 +429,12 @@ export default function Sales() {
           </div>
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Discount (₹)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                onFocus={selectOnFocus}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("discount")}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Paid Amount (₹)</label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                onFocus={selectOnFocus}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                {...register("paidAmount")}
-              />
-            </div>
+            <FormField label="Discount">
+              <Input type="number" min="0" step="0.01" prefix="₹" onFocus={selectOnFocus} {...register("discount")} />
+            </FormField>
+            <FormField label="Paid Amount">
+              <Input type="number" min="0" step="0.01" prefix="₹" onFocus={selectOnFocus} {...register("paidAmount")} />
+            </FormField>
             <div className="col-span-2 flex flex-col justify-end">
               <p className="text-xs text-slate-500">Subtotal: {formatCurrency(subtotal)}</p>
               <p className="text-sm font-semibold text-slate-800">Total: {formatCurrency(totalAmount)}</p>
@@ -476,20 +444,12 @@ export default function Sales() {
           {formError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>}
 
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-            >
+            </Button>
+            <Button type="submit" loading={isSubmitting}>
               Complete Sale
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>
@@ -530,39 +490,23 @@ export default function Sales() {
               </p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
-              <Link
-                to={`/sales/${detail.id}/receipt`}
-                target="_blank"
-                className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                <Printer className="h-4 w-4" />
+              <Button as={Link} to={`/sales/${detail.id}/receipt`} target="_blank" variant="secondary" icon={Printer}>
                 Print Receipt
-              </Link>
+              </Button>
               {detail.status !== "CANCELLED" && Number(detail.dueAmount) > 0 && (
-                <button
-                  onClick={openPaymentModal}
-                  className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <IndianRupee className="h-4 w-4" />
+                <Button variant="secondary" icon={IndianRupee} onClick={openPaymentModal}>
                   Record Payment
-                </button>
+                </Button>
               )}
               {(detail.status === "COMPLETED" || detail.status === "PARTIALLY_RETURNED") && (
-                <button
-                  onClick={() => openReturn(detail)}
-                  className="flex items-center gap-1.5 rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                >
-                  <Undo2 className="h-4 w-4" />
+                <Button variant="secondary" icon={Undo2} onClick={() => openReturn(detail)}>
                   Return Items
-                </button>
+                </Button>
               )}
               {detail.status === "COMPLETED" && (
-                <button
-                  onClick={() => setCancelTarget(detail)}
-                  className="rounded-md border border-red-300 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
-                >
+                <Button variant="danger" onClick={() => setCancelTarget(detail)}>
                   Cancel Sale
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -575,47 +519,33 @@ export default function Sales() {
             <p className="text-slate-500">
               Due amount: <span className="font-semibold text-slate-800">{formatCurrency(detail.dueAmount)}</span>
             </p>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Amount Received (₹)</label>
-              <input
+            <FormField label="Amount Received">
+              <Input
                 type="number"
                 min="0"
                 step="0.01"
                 max={Number(detail.dueAmount)}
+                prefix="₹"
                 onFocus={selectOnFocus}
                 value={paymentAmount}
                 onChange={(e) => setPaymentAmount(Number(e.target.value))}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Payment Method</label>
-              <select
-                value={paymentMethodInput}
-                onChange={(e) => setPaymentMethodInput(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
+            </FormField>
+            <FormField label="Payment Method">
+              <Select value={paymentMethodInput} onChange={(e) => setPaymentMethodInput(e.target.value)}>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>{m.replace("_", " ")}</option>
                 ))}
-              </select>
-            </div>
+              </Select>
+            </FormField>
 
             {paymentError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{paymentError}</p>}
 
             <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setPaymentModalOpen(false)}
-                className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
+              <Button variant="secondary" onClick={() => setPaymentModalOpen(false)}>
                 Cancel
-              </button>
-              <button
-                onClick={submitPayment}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                Record Payment
-              </button>
+              </Button>
+              <Button onClick={submitPayment}>Record Payment</Button>
             </div>
           </div>
         )}
@@ -623,7 +553,9 @@ export default function Sales() {
 
       <Modal open={returnModalOpen} onClose={() => setReturnModalOpen(false)} title="Return Items" maxWidth="max-w-2xl">
         <div className="space-y-4 text-sm">
-          {returnRows.length === 0 && <p className="text-slate-400">Nothing left to return on this sale.</p>}
+          {returnRows.length === 0 && (
+            <EmptyState icon={Undo2} title="Nothing left to return" message="Everything on this sale has already been returned." />
+          )}
           {returnRows.length > 0 && (
             <div className="space-y-2">
               <div className="grid grid-cols-[1fr_4rem_5rem_6rem_5rem] gap-2 px-1 text-xs font-medium text-slate-500">
@@ -636,30 +568,30 @@ export default function Sales() {
               {returnRows.map((row, index) => (
                 <div key={row.saleItemId} className="grid grid-cols-[1fr_4rem_5rem_6rem_5rem] items-center gap-2">
                   <span>{row.productName}</span>
-                  <input
+                  <Input
                     type="number"
                     min="0"
                     max={row.remaining}
                     onFocus={selectOnFocus}
                     value={row.quantity}
                     onChange={(e) => updateReturnRow(index, { quantity: Number(e.target.value) })}
-                    className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="px-2 py-1.5"
                   />
                   <span className="text-slate-500">{row.remaining}</span>
-                  <select
+                  <Select
                     value={row.condition}
                     onChange={(e) => updateReturnRow(index, { condition: e.target.value })}
-                    className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="px-2 py-1.5"
                   >
                     <option value="GOOD">Good</option>
                     <option value="DAMAGED">Damaged</option>
-                  </select>
+                  </Select>
                   <input
                     type="checkbox"
                     checked={row.condition === "GOOD" && row.returnToStock}
                     disabled={row.condition !== "GOOD"}
                     onChange={(e) => updateReturnRow(index, { returnToStock: e.target.checked })}
-                    className="h-4 w-4"
+                    className="h-4 w-4 accent-brand-600"
                   />
                 </div>
               ))}
@@ -667,47 +599,27 @@ export default function Sales() {
           )}
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Refund Method</label>
-              <select
-                value={returnMethod}
-                onChange={(e) => setReturnMethod(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              >
+            <FormField label="Refund Method">
+              <Select value={returnMethod} onChange={(e) => setReturnMethod(e.target.value)}>
                 {PAYMENT_METHODS.map((m) => (
                   <option key={m} value={m}>
                     {m.replace("_", " ")}
                   </option>
                 ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Reason (optional)</label>
-              <input
-                value={returnReason}
-                onChange={(e) => setReturnReason(e.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              />
-            </div>
+              </Select>
+            </FormField>
+            <FormField label="Reason (optional)">
+              <Input value={returnReason} onChange={(e) => setReturnReason(e.target.value)} />
+            </FormField>
           </div>
 
           {returnError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{returnError}</p>}
 
           <div className="flex justify-end gap-2">
-            <button
-              onClick={() => setReturnModalOpen(false)}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <Button variant="secondary" onClick={() => setReturnModalOpen(false)}>
               Cancel
-            </button>
-            {returnRows.length > 0 && (
-              <button
-                onClick={submitReturn}
-                className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-              >
-                Record Return
-              </button>
-            )}
+            </Button>
+            {returnRows.length > 0 && <Button onClick={submitReturn}>Record Return</Button>}
           </div>
         </div>
       </Modal>

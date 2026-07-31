@@ -2,12 +2,20 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, Eye } from "lucide-react";
+import { Plus, Pencil, Eye, Search, Truck, Mail, Phone, FileText, Landmark } from "lucide-react";
 import supplierApi from "../api/supplierApi";
 import Table from "../components/Table";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
 import StatusBadge from "../components/StatusBadge";
+import Button from "../components/ui/Button";
+import IconButton from "../components/ui/IconButton";
+import Input from "../components/ui/Input";
+import Textarea from "../components/ui/Textarea";
+import FormField from "../components/ui/FormField";
+import PageHeader from "../components/ui/PageHeader";
+import EmptyState from "../components/ui/EmptyState";
+import { TableSkeleton } from "../components/ui/Skeleton";
 import { formatCurrency, formatDate } from "../utils/currency";
 import { useToast } from "../context/ToastContext";
 
@@ -132,14 +140,13 @@ export default function Suppliers() {
       key: "actions",
       header: "Actions",
       render: (row) => (
-        <div className="flex items-center gap-3">
-          <button onClick={() => openDetail(row)} className="text-slate-500 hover:text-blue-600" title="View">
-            <Eye className="h-4 w-4" />
-          </button>
-          <button onClick={() => openEdit(row)} className="text-slate-500 hover:text-blue-600" title="Edit">
-            <Pencil className="h-4 w-4" />
-          </button>
-          <button onClick={() => toggleStatus(row)} className="text-xs font-medium text-blue-600 hover:underline">
+        <div className="flex items-center gap-1">
+          <IconButton icon={Eye} title="View" onClick={() => openDetail(row)} />
+          <IconButton icon={Pencil} title="Edit" onClick={() => openEdit(row)} />
+          <button
+            onClick={() => toggleStatus(row)}
+            className="rounded-md px-2 py-1 text-xs font-medium text-brand-600 hover:bg-brand-50"
+          >
             {row.isActive ? "Deactivate" : "Activate"}
           </button>
         </div>
@@ -149,27 +156,23 @@ export default function Suppliers() {
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-800">Suppliers</h1>
-          <p className="text-sm text-slate-500">Manage your stock suppliers</p>
-        </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4" />
-          Add Supplier
-        </button>
-      </div>
+      <PageHeader
+        title="Suppliers"
+        subtitle="Manage your stock suppliers"
+        action={
+          <Button icon={Plus} onClick={openCreate}>
+            Add Supplier
+          </Button>
+        }
+      />
 
-      <div className="mt-4">
-        <input
+      <div className="mt-4 w-64">
+        <Input
+          icon={Search}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && (setPage(1), load())}
           placeholder="Search by name, contact, phone..."
-          className="w-64 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
 
@@ -177,7 +180,20 @@ export default function Suppliers() {
 
       <div className="mt-4">
         {loading ? (
-          <p className="text-sm text-slate-400">Loading...</p>
+          <TableSkeleton columns={columns.length} />
+        ) : suppliers.length === 0 ? (
+          <div className="rounded-xl border border-slate-200 bg-white">
+            <EmptyState
+              icon={Truck}
+              title="No suppliers found"
+              message="Add your first supplier to start recording purchases."
+              action={
+                <Button icon={Plus} onClick={openCreate}>
+                  Add Supplier
+                </Button>
+              }
+            />
+          </div>
         ) : (
           <>
             <Table columns={columns} data={suppliers} />
@@ -188,76 +204,37 @@ export default function Suppliers() {
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? "Edit Supplier" : "Add Supplier"} maxWidth="max-w-xl">
         <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700">Name</label>
-            <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("name")}
-            />
-            {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Contact Person</label>
-            <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("contactPerson")}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Phone</label>
-            <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("phone")}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">Email</label>
-            <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("email")}
-            />
-            {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email.message}</p>}
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700">GST Number</label>
-            <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("gstNumber")}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700">Address</label>
-            <input
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("address")}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700">Notes</label>
-            <textarea
-              rows={2}
-              className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-              {...register("notes")}
-            />
-          </div>
+          <FormField label="Name" error={errors.name} className="sm:col-span-2">
+            <Input error={errors.name} {...register("name")} />
+          </FormField>
+          <FormField label="Contact Person">
+            <Input {...register("contactPerson")} />
+          </FormField>
+          <FormField label="Phone">
+            <Input icon={Phone} {...register("phone")} />
+          </FormField>
+          <FormField label="Email" error={errors.email}>
+            <Input icon={Mail} error={errors.email} {...register("email")} />
+          </FormField>
+          <FormField label="GST Number">
+            <Input icon={FileText} {...register("gstNumber")} />
+          </FormField>
+          <FormField label="Address" className="sm:col-span-2">
+            <Input icon={Landmark} {...register("address")} />
+          </FormField>
+          <FormField label="Notes" className="sm:col-span-2">
+            <Textarea rows={2} {...register("notes")} />
+          </FormField>
           {formError && (
             <p className="sm:col-span-2 rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>
           )}
           <div className="sm:col-span-2 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="rounded-md border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-            >
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-60"
-            >
+            </Button>
+            <Button type="submit" loading={isSubmitting}>
               {editing ? "Save Changes" : "Create"}
-            </button>
+            </Button>
           </div>
         </form>
       </Modal>

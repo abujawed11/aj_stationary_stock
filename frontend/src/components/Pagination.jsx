@@ -28,7 +28,7 @@ export default function Pagination({ meta, onPageChange, pageSize, onPageSizeCha
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            className="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
           >
             {pageSizeOptions.map((size) => (
               <option key={size} value={size}>
@@ -61,8 +61,8 @@ export default function Pagination({ meta, onPageChange, pageSize, onPageSizeCha
             <button
               key={p}
               onClick={() => onPageChange(p)}
-              className={`h-8 min-w-[2rem] rounded-md px-2 text-sm font-medium ${
-                p === page ? "bg-emerald-500 text-white" : "border border-slate-300 text-slate-600 hover:bg-slate-50"
+              className={`h-8 min-w-8 rounded-md px-2 text-sm font-medium transition ${
+                p === page ? "bg-brand-600 text-white" : "border border-slate-300 text-slate-600 hover:bg-slate-50"
               }`}
             >
               {p}
