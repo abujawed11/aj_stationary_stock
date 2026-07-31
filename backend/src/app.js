@@ -9,6 +9,8 @@ const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
 
 const app = express();
 
+app.set("trust proxy", "loopback");
+
 app.use(helmet());
 const allowedOrigins = process.env.CLIENT_URL.split(",").map((origin) =>
   origin.trim()
