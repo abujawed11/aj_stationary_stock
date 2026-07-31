@@ -110,6 +110,17 @@ export default function Sales() {
     [watchedItems]
   );
   const totalAmount = subtotal - (Number(watchedDiscount) || 0);
+  const estimatedProfit = useMemo(
+    () =>
+      (watchedItems || []).reduce((sum, item) => {
+        const product = products.find((p) => String(p.id) === String(item.productId));
+        if (!product) return sum;
+        const qty = Number(item.quantity) || 0;
+        const price = Number(item.sellingPrice) || 0;
+        return sum + qty * (price - Number(product.purchasePrice));
+      }, 0) - (Number(watchedDiscount) || 0),
+    [watchedItems, products, watchedDiscount]
+  );
 
   async function load() {
     setLoading(true);
@@ -369,22 +380,28 @@ export default function Sales() {
                 Add item
               </button>
             </div>
-            <div className="mt-2 grid grid-cols-[1fr_5rem_5rem_6.5rem_6rem_1.5rem] gap-3 px-1 text-xs font-medium text-slate-500">
+            <div className="mt-2 grid grid-cols-[1fr_5rem_5rem_6.5rem_6rem_6rem_1.5rem] gap-3 px-1 text-xs font-medium text-slate-500">
               <span>Product</span>
               <span>Quantity</span>
               <span>Stock</span>
               <span>Price (₹)</span>
               <span>Line Total (₹)</span>
+              <span>Profit (₹)</span>
               <span></span>
             </div>
             <div className="mt-1 space-y-2">
               {fields.map((field, index) => {
                 const item = watchedItems?.[index];
                 const selectedProduct = products.find((p) => String(p.id) === String(item?.productId));
-                const lineTotal = (Number(item?.quantity) || 0) * (Number(item?.sellingPrice) || 0);
+                const qty = Number(item?.quantity) || 0;
+                const price = Number(item?.sellingPrice) || 0;
+                const lineTotal = qty * price;
                 const exceedsStock = selectedProduct && Number(item?.quantity) > selectedProduct.currentStock;
+                const cost = selectedProduct ? Number(selectedProduct.purchasePrice) : null;
+                const lineProfit = cost !== null ? qty * (price - cost) : null;
+                const belowCost = cost !== null && price > 0 && price < cost;
                 return (
-                  <div key={field.id} className="grid grid-cols-[1fr_5rem_5rem_6.5rem_6rem_1.5rem] items-center gap-3">
+                  <div key={field.id} className="grid grid-cols-[1fr_5rem_5rem_6.5rem_6rem_6rem_1.5rem] items-center gap-3">
                     <Controller
                       control={control}
                       name={`items.${index}.productId`}
@@ -410,8 +427,30 @@ export default function Sales() {
                     <span className={`text-sm ${exceedsStock ? "text-red-600" : "text-slate-500"}`}>
                       {selectedProduct ? selectedProduct.currentStock : "-"}
                     </span>
-                    <Input type="number" min="0" step="0.01" aria-label="Selling price" onFocus={selectOnFocus} {...register(`items.${index}.sellingPrice`)} />
+                    <div>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        aria-label="Selling price"
+                        onFocus={selectOnFocus}
+                        error={belowCost}
+                        {...register(`items.${index}.sellingPrice`)}
+                      />
+                      {cost !== null && <p className="mt-0.5 text-xs text-slate-400">Cost: {formatCurrency(cost)}</p>}
+                    </div>
                     <span className="text-sm text-slate-600">{formatCurrency(lineTotal)}</span>
+                    <span>
+                      {lineProfit !== null ? (
+                        <span className={`text-sm font-medium ${belowCost ? "text-red-600" : "text-emerald-600"}`}>
+                          {belowCost ? "" : "+"}
+                          {formatCurrency(lineProfit)}
+                        </span>
+                      ) : (
+                        <span className="text-sm text-slate-400">-</span>
+                      )}
+                      {belowCost && <p className="text-xs text-red-600">Selling at a loss</p>}
+                    </span>
                     <button
                       type="button"
                       onClick={() => fields.length > 1 && remove(index)}
@@ -438,6 +477,9 @@ export default function Sales() {
             <div className="col-span-2 flex flex-col justify-end">
               <p className="text-xs text-slate-500">Subtotal: {formatCurrency(subtotal)}</p>
               <p className="text-sm font-semibold text-slate-800">Total: {formatCurrency(totalAmount)}</p>
+              <p className={`text-xs font-medium ${estimatedProfit < 0 ? "text-red-600" : "text-emerald-600"}`}>
+                Estimated Profit: {formatCurrency(estimatedProfit)}
+              </p>
             </div>
           </div>
 
