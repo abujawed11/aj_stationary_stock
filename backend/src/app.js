@@ -10,9 +10,13 @@ const { notFoundHandler, errorHandler } = require("./middleware/errorHandler");
 const app = express();
 
 app.use(helmet());
+const allowedOrigins = process.env.CLIENT_URL.split(",").map((origin) =>
+  origin.trim()
+);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     credentials: true,
   })
 );
