@@ -235,7 +235,7 @@ Decision needed from you: keep the existing hand-rolled `ToastContext` (just res
   - Add a `--font-sans` variable pointing at the new variable webfont, applied on `body`.
   - Standardize radius scale (`rounded-lg` for inputs/buttons, `rounded-xl` for cards/modals — already mostly consistent, just codify it).
   - Standardize shadow scale: a soft `shadow-sm` for cards, a slightly deeper shadow for modals/popovers.
-- Add `darkMode: "class"` support (Tailwind v4 config) + a `<html data-theme>`/class toggle stored in `localStorage`, surfaced as a toggle in the topbar. Every shared component gets `dark:` variants; pages inherit it for free since they'll be built from shared components. (Stretch goal — see phasing below; can ship without dark mode if you want to de-scope.)
+- Dark mode: **skipped for now** (de-scoped per your call on 2026-07-31). No `dark:` variants will be added; can be revisited as a later phase without disrupting the component library, since tokens are already centralized.
 
 ### 7.4 Shared component library (new files under `frontend/src/components/ui/`)
 
@@ -272,6 +272,23 @@ Migration approach: build these once, then convert pages one at a time (Products
 - Use icons for: nav items (done), stat card badges (done), form field affordances (done in Login, extend to money/search/date fields elsewhere), status/tone badges, empty states, toasts (done), row action buttons, dropdown menu items, page header context, dark-mode toggle (Sun/Moon).
 - Icon sizing convention: `h-3.5 w-3.5` inline-with-text, `h-4 w-4` buttons/inputs, `h-5 w-5` headers/modals, `h-8 w-8`+ inside colored badge containers — codify this instead of ad-hoc sizes.
 
+### 7.7a Progress (updated 2026-07-31)
+
+- [x] Step 1: installed `@headlessui/react`, `motion`, `@fontsource-variable/plus-jakarta-sans`; wired `--font-sans` + `--color-brand-*` + `--shadow-card`/`--shadow-popover` tokens in `index.css`.
+- [x] Step 2: built `components/ui/` primitives — `Button`, `IconButton`, `Input`, `Select`, `Textarea`, `FormField`, `Card`, `Badge`, `Dropdown` (Headless UI Menu), `EmptyState`, `Skeleton`/`TableSkeleton`/`StatCardSkeleton`, `PageHeader`. `StatusBadge` now delegates to `Badge`.
+- [x] Step 3: rewrote `Modal.jsx` on Headless UI `Dialog`+`Transition` (backdrop blur + fade/scale, same prop API — no page call-sites changed).
+- [x] Step 4: rewrote `AppLayout.jsx` — active nav item now has a left accent bar, topbar Logout button replaced with an avatar-initials dropdown menu (Headless UI `Menu`), mobile drawer now slides in/out instead of appearing instantly.
+- [x] Step 5: converted `Products.jsx` to the new primitives (reference page) — search input has a leading search icon, price fields show a ₹ prefix, table loading state is now a shaped skeleton instead of "Loading...", empty state has an icon + "Add Product" CTA, stock ledger rows get up/down arrow icons.
+- [ ] Not yet: steps 6–8 (remaining pages, dashboard hierarchy, final responsive/typography pass).
+
+**To verify in the browser (`npm run dev`):**
+1. Sidebar — active page should show a small blue accent bar on the left of its nav item.
+2. Topbar — top-right should now be an avatar circle with initials + your name + chevron; clicking it opens a dropdown with your username and a Logout item (styled, not a bare button).
+3. Any modal (e.g. Products → Add Product) should fade/scale in with a blurred backdrop, not appear instantly.
+4. Products page: search box has a magnifying-glass icon inside it; Selling Price/MRP fields show a ₹ prefix; temporarily throttle network or reload to see the skeleton loading placeholder instead of "Loading..." text; filter to something with no results to see the new empty state with icon + button.
+5. General type-check: the whole app now renders in the Plus Jakarta Sans font instead of the system default — should look slightly more distinct/rounded.
+6. Functionality check (nothing should have changed here): creating/editing a product, toggling active/inactive, and viewing the stock ledger should all still work exactly as before.
+
 ### 7.7 Execution order
 
 1. Install new deps (`@headlessui/react`, `motion`, font package); wire font + theme tokens in `index.css`.
@@ -281,7 +298,7 @@ Migration approach: build these once, then convert pages one at a time (Products
 5. Convert `Products.jsx` fully to the new primitives as the reference page — pause here for your review before repeating the pattern.
 6. Roll the same conversion across Categories, Suppliers, Purchases, Sales, Stock Adjustments, Expenses, Reports, Settings.
 7. Dashboard visual hierarchy + chart polish + row icons.
-8. Final pass: NotFound, Receipt typography, dark-mode spot-check across every page, responsive/mobile check.
+8. Final pass: NotFound, Receipt typography, responsive/mobile check.
 
 Each step ships as its own commit/checkpoint so functionality can be verified (forms still submit correctly, validation still fires) before moving to the next page — no behavior changes, styling/structure only.
 
