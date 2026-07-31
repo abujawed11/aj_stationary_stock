@@ -11,6 +11,7 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:reset": "prisma migrate reset --skip-seed",
     "prisma:seed": "prisma db seed",
+    "prisma:seed:prod": "node prisma/seed.production.js",
     "prisma:studio": "prisma studio",
     "test": "vitest run"
   },
