@@ -389,7 +389,7 @@ export default function Sales() {
               <span>Profit (₹)</span>
               <span></span>
             </div>
-            <div className="mt-1 space-y-2">
+            <div className="mt-1 space-y-2 rounded-lg border border-slate-100 bg-slate-50/50 p-2">
               {fields.map((field, index) => {
                 const item = watchedItems?.[index];
                 const selectedProduct = products.find((p) => String(p.id) === String(item?.productId));
@@ -401,7 +401,10 @@ export default function Sales() {
                 const lineProfit = cost !== null ? qty * (price - cost) : null;
                 const belowCost = cost !== null && price > 0 && price < cost;
                 return (
-                  <div key={field.id} className="grid grid-cols-[1fr_5rem_5rem_6.5rem_6rem_6rem_1.5rem] items-center gap-3">
+                  <div
+                    key={field.id}
+                    className="grid grid-cols-[1fr_5rem_5rem_6.5rem_6rem_6rem_1.5rem] items-start gap-3 rounded-md border border-slate-100 bg-white p-2"
+                  >
                     <Controller
                       control={control}
                       name={`items.${index}.productId`}
@@ -424,7 +427,7 @@ export default function Sales() {
                       error={exceedsStock}
                       {...register(`items.${index}.quantity`)}
                     />
-                    <span className={`text-sm ${exceedsStock ? "text-red-600" : "text-slate-500"}`}>
+                    <span className={`pt-2 text-sm ${exceedsStock ? "text-red-600" : "text-slate-500"}`}>
                       {selectedProduct ? selectedProduct.currentStock : "-"}
                     </span>
                     <div>
@@ -439,8 +442,8 @@ export default function Sales() {
                       />
                       {cost !== null && <p className="mt-0.5 text-xs text-slate-400">Cost: {formatCurrency(cost)}</p>}
                     </div>
-                    <span className="text-sm text-slate-600">{formatCurrency(lineTotal)}</span>
-                    <span>
+                    <span className="pt-2 text-sm text-slate-600">{formatCurrency(lineTotal)}</span>
+                    <div className="pt-2">
                       {lineProfit !== null ? (
                         <span className={`text-sm font-medium ${belowCost ? "text-red-600" : "text-emerald-600"}`}>
                           {belowCost ? "" : "+"}
@@ -450,11 +453,11 @@ export default function Sales() {
                         <span className="text-sm text-slate-400">-</span>
                       )}
                       {belowCost && <p className="text-xs text-red-600">Selling at a loss</p>}
-                    </span>
+                    </div>
                     <button
                       type="button"
                       onClick={() => fields.length > 1 && remove(index)}
-                      className="text-slate-400 hover:text-red-600"
+                      className="pt-2 text-slate-400 hover:text-red-600"
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>
