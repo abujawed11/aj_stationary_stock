@@ -67,8 +67,26 @@ export default function Products() {
     register,
     handleSubmit,
     reset,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm({ resolver: zodResolver(productSchema) });
+
+  const watchedCategoryId = watch("categoryId");
+  const watchedMrp = watch("mrp");
+  const selectedCategory = categories.find((c) => String(c.id) === String(watchedCategoryId));
+  const purchasePrice = editing ? Number(editing.purchasePrice) : 0;
+  const hasCostBasis = editing && purchasePrice > 0;
+  let suggestedPrice = null;
+  if (hasCostBasis && selectedCategory) {
+    const markup = Number(selectedCategory.defaultMarkupPercent);
+    suggestedPrice = purchasePrice * (1 + markup / 100);
+    const mrpNum = watchedMrp === "" || watchedMrp === undefined ? undefined : Number(watchedMrp);
+    if (mrpNum && suggestedPrice > mrpNum) {
+      suggestedPrice = mrpNum;
+    }
+    suggestedPrice = Math.round(suggestedPrice * 100) / 100;
+  }
 
   async function loadCategories() {
     const res = await categoryApi.list({ limit: 100, isActive: true });
@@ -330,6 +348,24 @@ export default function Products() {
                   error={errors.sellingPrice}
                   {...register("sellingPrice")}
                 />
+                {hasCostBasis && (
+                  <p className="mt-1 text-xs text-slate-400">
+                    Cost: {formatCurrency(purchasePrice)}
+                    {suggestedPrice !== null && (
+                      <>
+                        {" · Suggested: "}
+                        <button
+                          type="button"
+                          onClick={() => setValue("sellingPrice", suggestedPrice, { shouldValidate: true })}
+                          className="font-medium text-brand-600 hover:underline"
+                        >
+                          {formatCurrency(suggestedPrice)}
+                        </button>
+                        {` (${Number(selectedCategory.defaultMarkupPercent)}% markup)`}
+                      </>
+                    )}
+                  </p>
+                )}
               </FormField>
               <FormField label="MRP (optional)">
                 <Input type="number" step="0.01" min="0" prefix="₹" onFocus={selectOnFocus} {...register("mrp")} />

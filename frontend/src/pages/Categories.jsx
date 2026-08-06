@@ -16,11 +16,13 @@ import FormField from "../components/ui/FormField";
 import PageHeader from "../components/ui/PageHeader";
 import EmptyState from "../components/ui/EmptyState";
 import { TableSkeleton } from "../components/ui/Skeleton";
+import { selectOnFocus } from "../utils/formHelpers";
 import { useToast } from "../context/ToastContext";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional(),
+  defaultMarkupPercent: z.coerce.number().nonnegative("Cannot be negative"),
 });
 
 export default function Categories() {
@@ -70,14 +72,18 @@ export default function Categories() {
   function openCreate() {
     setEditing(null);
     setFormError("");
-    reset({ name: "", description: "" });
+    reset({ name: "", description: "", defaultMarkupPercent: 40 });
     setModalOpen(true);
   }
 
   function openEdit(category) {
     setEditing(category);
     setFormError("");
-    reset({ name: category.name, description: category.description || "" });
+    reset({
+      name: category.name,
+      description: category.description || "",
+      defaultMarkupPercent: Number(category.defaultMarkupPercent),
+    });
     setModalOpen(true);
   }
 
@@ -113,6 +119,7 @@ export default function Categories() {
   const columns = [
     { key: "name", header: "Name" },
     { key: "description", header: "Description", render: (row) => row.description || "-" },
+    { key: "defaultMarkupPercent", header: "Default Markup", render: (row) => `${Number(row.defaultMarkupPercent)}%` },
     { key: "status", header: "Status", render: (row) => <StatusBadge active={row.isActive} /> },
     {
       key: "actions",
@@ -186,6 +193,19 @@ export default function Categories() {
           </FormField>
           <FormField label="Description">
             <Textarea rows={3} {...register("description")} />
+          </FormField>
+          <FormField label="Default Markup %" error={errors.defaultMarkupPercent}>
+            <Input
+              type="number"
+              min="0"
+              step="1"
+              onFocus={selectOnFocus}
+              error={errors.defaultMarkupPercent}
+              {...register("defaultMarkupPercent")}
+            />
+            <p className="mt-1 text-xs text-slate-400">
+              Used to suggest a selling price for products in this category, based on purchase price. You can always override it per product.
+            </p>
           </FormField>
           {formError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>}
           <div className="flex justify-end gap-2">
