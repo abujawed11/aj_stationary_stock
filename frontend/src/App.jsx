@@ -9,6 +9,7 @@ import Categories from "./pages/Categories";
 import Products from "./pages/Products";
 import Suppliers from "./pages/Suppliers";
 import Purchases from "./pages/Purchases";
+import SupplierComparison from "./pages/SupplierComparison";
 import Sales from "./pages/Sales";
 import Receipt from "./pages/Receipt";
 import StockAdjustments from "./pages/StockAdjustments";
@@ -34,6 +35,7 @@ function App() {
                 <Route path="/products" element={<Products />} />
                 <Route path="/suppliers" element={<Suppliers />} />
                 <Route path="/purchases" element={<Purchases />} />
+                <Route path="/supplier-comparison" element={<SupplierComparison />} />
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/stock-adjustments" element={<StockAdjustments />} />
                 <Route path="/expenses" element={<Expenses />} />

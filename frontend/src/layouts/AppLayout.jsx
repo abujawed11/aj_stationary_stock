@@ -18,6 +18,7 @@ import {
   LogOut,
   ChevronDown,
   UserCircle,
+  Scale,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { to: "/products", label: "Products", icon: Package },
   { to: "/suppliers", label: "Suppliers", icon: Truck },
   { to: "/purchases", label: "Purchases", icon: ShoppingCart },
+  { to: "/supplier-comparison", label: "Supplier Comparison", icon: Scale },
   { to: "/sales", label: "Sales", icon: Receipt },
   { to: "/stock-adjustments", label: "Stock Adjustments", icon: SlidersHorizontal },
   { to: "/expenses", label: "Expenses", icon: Wallet },
