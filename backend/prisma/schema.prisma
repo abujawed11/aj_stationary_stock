@@ -112,12 +112,13 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  purchases        Purchase[]        @relation("PurchaseCreatedBy")
-  sales            Sale[]            @relation("SaleCreatedBy")
-  salesReturns     SalesReturn[]     @relation("SalesReturnCreatedBy")
-  stockAdjustments StockAdjustment[] @relation("StockAdjustmentCreatedBy")
-  stockMovements   StockMovement[]   @relation("StockMovementCreatedBy")
-  expenses         Expense[]         @relation("ExpenseCreatedBy")
+  purchases         Purchase[]          @relation("PurchaseCreatedBy")
+  sales             Sale[]              @relation("SaleCreatedBy")
+  salesReturns      SalesReturn[]       @relation("SalesReturnCreatedBy")
+  stockAdjustments  StockAdjustment[]   @relation("StockAdjustmentCreatedBy")
+  stockMovements    StockMovement[]     @relation("StockMovementCreatedBy")
+  expenses          Expense[]           @relation("ExpenseCreatedBy")
+  supplierQuotations SupplierQuotation[] @relation("SupplierQuotationCreatedBy")
 
   @@map("users")
 }
@@ -154,12 +155,13 @@ model Product {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  category         Category          @relation(fields: [categoryId], references: [id])
-  purchaseItems    PurchaseItem[]
-  saleItems        SaleItem[]
-  salesReturnItems SalesReturnItem[]
-  stockAdjustments StockAdjustment[]
-  stockMovements   StockMovement[]
+  category           Category            @relation(fields: [categoryId], references: [id])
+  purchaseItems      PurchaseItem[]
+  saleItems          SaleItem[]
+  salesReturnItems   SalesReturnItem[]
+  stockAdjustments   StockAdjustment[]
+  stockMovements     StockMovement[]
+  supplierQuotations SupplierQuotation[]
 
   @@index([categoryId])
   @@index([name])
@@ -181,9 +183,38 @@ model Supplier {
   updatedAt     DateTime @updatedAt
 
   purchases Purchase[]
+  quotations SupplierQuotation[]
 
   @@index([name])
   @@map("suppliers")
+}
+
+model SupplierQuotation {
+  id               Int      @id @default(autoincrement())
+  productId        Int
+  supplierId       Int
+  unitPrice        Decimal  @db.Decimal(12, 2)
+  moq              Int      @default(1)
+  deliveryCharge   Decimal  @default(0) @db.Decimal(12, 2)
+  discount         Decimal  @default(0) @db.Decimal(12, 2)
+  schemeBuyQty     Int?
+  schemeFreeQty    Int?
+  otherCharges     Decimal  @default(0) @db.Decimal(12, 2)
+  deliveryTime     String?
+  notes            String?  @db.Text
+  isActive         Boolean  @default(true)
+  createdById      Int
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  product   Product  @relation(fields: [productId], references: [id])
+  supplier  Supplier @relation(fields: [supplierId], references: [id])
+  createdBy User     @relation("SupplierQuotationCreatedBy", fields: [createdById], references: [id])
+
+  @@index([productId])
+  @@index([supplierId])
+  @@index([isActive])
+  @@map("supplier_quotations")
 }
 
 model Purchase {

@@ -15,6 +15,7 @@ async function resetDatabase() {
     prisma.purchase.deleteMany(),
     prisma.stockAdjustment.deleteMany(),
     prisma.expense.deleteMany(),
+    prisma.supplierQuotation.deleteMany(),
     prisma.product.deleteMany(),
     prisma.category.deleteMany(),
     prisma.supplier.deleteMany(),

@@ -1,0 +1,143 @@
+const prisma = require("../config/prisma");
+const ApiError = require("../utils/ApiError");
+const { getPagination, buildMeta } = require("../utils/pagination");
+const { toDecimal, multiply, add, subtract, toNumber } = require("../utils/money");
+
+async function list(query) {
+  const { page, limit, skip } = getPagination(query);
+  const where = { isActive: true };
+  if (query.productId) where.productId = Number(query.productId);
+  if (query.supplierId) where.supplierId = Number(query.supplierId);
+
+  const [items, total] = await Promise.all([
+    prisma.supplierQuotation.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: { supplier: true, product: true },
+    }),
+    prisma.supplierQuotation.count({ where }),
+  ]);
+
+  return { items, meta: buildMeta(page, limit, total) };
+}
+
+async function getById(id) {
+  const quotation = await prisma.supplierQuotation.findUnique({
+    where: { id: Number(id) },
+    include: { supplier: true, product: true },
+  });
+  if (!quotation) {
+    throw new ApiError(404, "Supplier quotation not found");
+  }
+  return quotation;
+}
+
+async function create(data, userId) {
+  const [product, supplier] = await Promise.all([
+    prisma.product.findUnique({ where: { id: data.productId } }),
+    prisma.supplier.findUnique({ where: { id: data.supplierId } }),
+  ]);
+  if (!product) throw new ApiError(404, "Product not found");
+  if (!supplier) throw new ApiError(404, "Supplier not found");
+
+  return prisma.supplierQuotation.create({
+    data: { ...data, createdById: userId },
+    include: { supplier: true, product: true },
+  });
+}
+
+async function update(id, data) {
+  await getById(id);
+  return prisma.supplierQuotation.update({
+    where: { id: Number(id) },
+    data,
+    include: { supplier: true, product: true },
+  });
+}
+
+async function remove(id) {
+  await getById(id);
+  await prisma.supplierQuotation.delete({ where: { id: Number(id) } });
+}
+
+/**
+ * Free qty = floor(paidQty / buyQty) * freeQty
+ * Total received = paidQty + freeQty
+ * Total cost = (paidQty * unitPrice) - discount + deliveryCharge + otherCharges
+ * Effective cost/unit = totalCost / totalReceivedQty
+ */
+function calculateQuotation(quotation, requiredQty) {
+  const paidQty = requiredQty;
+  const eligible = paidQty >= quotation.moq;
+
+  let freeQty = 0;
+  if (quotation.schemeBuyQty && quotation.schemeFreeQty) {
+    freeQty = Math.floor(paidQty / quotation.schemeBuyQty) * quotation.schemeFreeQty;
+  }
+  const totalReceivedQty = paidQty + freeQty;
+
+  const totalCostDecimal = subtract(
+    add(multiply(paidQty, quotation.unitPrice), quotation.deliveryCharge, quotation.otherCharges),
+    quotation.discount
+  );
+  const totalCost = toNumber(totalCostDecimal);
+  const effectiveCostPerUnit = totalReceivedQty > 0 ? toNumber(toDecimal(totalCost).div(totalReceivedQty)) : null;
+
+  return {
+    id: quotation.id,
+    supplier: quotation.supplier,
+    unitPrice: toNumber(quotation.unitPrice),
+    moq: quotation.moq,
+    deliveryCharge: toNumber(quotation.deliveryCharge),
+    discount: toNumber(quotation.discount),
+    schemeBuyQty: quotation.schemeBuyQty,
+    schemeFreeQty: quotation.schemeFreeQty,
+    otherCharges: toNumber(quotation.otherCharges),
+    deliveryTime: quotation.deliveryTime,
+    notes: quotation.notes,
+    paidQuantity: paidQty,
+    freeQuantity: freeQty,
+    totalReceivedQuantity: totalReceivedQty,
+    totalPurchaseCost: totalCost,
+    effectiveCostPerUnit,
+    eligible,
+    ineligibleReason: eligible ? null : `Required quantity (${paidQty}) is below MOQ (${quotation.moq})`,
+  };
+}
+
+async function compare(productId, requiredQty) {
+  const product = await prisma.product.findUnique({ where: { id: Number(productId) } });
+  if (!product) throw new ApiError(404, "Product not found");
+
+  const quotations = await prisma.supplierQuotation.findMany({
+    where: { productId: Number(productId), isActive: true },
+    include: { supplier: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const computed = quotations.map((q) => calculateQuotation(q, Number(requiredQty)));
+
+  const eligible = computed
+    .filter((q) => q.eligible)
+    .sort((a, b) => a.effectiveCostPerUnit - b.effectiveCostPerUnit);
+  const ineligible = computed.filter((q) => !q.eligible);
+
+  if (eligible.length > 0) {
+    eligible[0].isLowestEffectiveCost = true;
+  }
+
+  return {
+    product: {
+      id: product.id,
+      name: product.name,
+      sku: product.sku,
+      unit: product.unit,
+    },
+    requiredQty: Number(requiredQty),
+    quotations: [...eligible, ...ineligible],
+  };
+}
+
+module.exports = { list, getById, create, update, remove, compare };
