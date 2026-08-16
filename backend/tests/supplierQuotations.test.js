@@ -110,4 +110,49 @@ describe("Supplier price comparison", () => {
     const purchaseCount = await prisma.purchase.count();
     expect(purchaseCount).toBe(0);
   });
+
+  describe("Basket comparison", () => {
+    let productB;
+
+    beforeEach(async () => {
+      productB = await createProduct(category.id, { sku: `TSTB${Math.floor(Math.random() * 1000000)}`, name: "Product B" });
+    });
+
+    it("ranks a supplier that covers the full basket ahead of one that only covers part of it", async () => {
+      // Supplier A covers both products
+      await request(app).post("/api/supplier-quotations").set("Cookie", `token=${token}`).send({
+        productId: product.id, supplierId: supplierA.id, unitPrice: 10, moq: 1,
+      });
+      await request(app).post("/api/supplier-quotations").set("Cookie", `token=${token}`).send({
+        productId: productB.id, supplierId: supplierA.id, unitPrice: 20, moq: 1,
+      });
+      // Supplier B only covers product A, cheaper on that one item
+      await request(app).post("/api/supplier-quotations").set("Cookie", `token=${token}`).send({
+        productId: product.id, supplierId: supplierB.id, unitPrice: 5, moq: 1,
+      });
+
+      const res = await request(app)
+        .post("/api/supplier-quotations/compare-basket")
+        .set("Cookie", `token=${token}`)
+        .send({
+          items: [
+            { productId: product.id, requiredQty: 10 },
+            { productId: productB.id, requiredQty: 5 },
+          ],
+        });
+
+      expect(res.status).toBe(200);
+      const [first, second] = res.body.data.suppliers;
+      expect(first.supplier.id).toBe(supplierA.id);
+      expect(first.isComplete).toBe(true);
+      expect(first.totalBasketCost).toBe(200); // 10*10 + 5*20
+      expect(first.isLowestBasketCost).toBe(true);
+
+      expect(second.supplier.id).toBe(supplierB.id);
+      expect(second.isComplete).toBe(false);
+      expect(second.coveredCount).toBe(1);
+      expect(second.missingItems).toHaveLength(1);
+      expect(second.missingItems[0].productId).toBe(productB.id);
+    });
+  });
 });

@@ -16,7 +16,19 @@ const createSupplierQuotationSchema = z.object({
 
 const updateSupplierQuotationSchema = createSupplierQuotationSchema.partial();
 
+const compareBasketSchema = z.object({
+  items: z
+    .array(
+      z.object({
+        productId: z.coerce.number().int().positive(),
+        requiredQty: z.coerce.number().int().positive(),
+      })
+    )
+    .min(1, "Add at least one product"),
+});
+
 module.exports = {
   createSupplierQuotationSchema,
   updateSupplierQuotationSchema,
+  compareBasketSchema,
 };

@@ -31,4 +31,9 @@ async function compare(productId, requiredQty) {
   return data.data;
 }
 
-export default { list, getById, create, update, remove, compare };
+async function compareBasket(items) {
+  const { data } = await axiosInstance.post("/supplier-quotations/compare-basket", { items });
+  return data.data;
+}
+
+export default { list, getById, create, update, remove, compare, compareBasket };

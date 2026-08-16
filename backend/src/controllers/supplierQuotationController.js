@@ -37,4 +37,9 @@ const compare = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: "Supplier price comparison fetched", data: result });
 });
 
-module.exports = { list, getById, create, update, remove, compare };
+const compareBasket = asyncHandler(async (req, res) => {
+  const result = await supplierQuotationService.compareBasket(req.body.items);
+  sendSuccess(res, { message: "Supplier basket comparison fetched", data: result });
+});
+
+module.exports = { list, getById, create, update, remove, compare, compareBasket };
