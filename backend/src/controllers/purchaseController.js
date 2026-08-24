@@ -17,6 +17,11 @@ const create = asyncHandler(async (req, res) => {
   sendSuccess(res, { statusCode: 201, message: "Purchase completed successfully", data: purchase });
 });
 
+const update = asyncHandler(async (req, res) => {
+  const purchase = await purchaseService.update(req.params.id, req.body, req.user.id);
+  sendSuccess(res, { message: "Purchase updated successfully", data: purchase });
+});
+
 const cancel = asyncHandler(async (req, res) => {
   const purchase = await purchaseService.cancel(req.params.id, req.user.id);
   sendSuccess(res, { message: "Purchase cancelled successfully", data: purchase });
@@ -27,4 +32,4 @@ const recordPayment = asyncHandler(async (req, res) => {
   sendSuccess(res, { message: "Payment recorded successfully", data: purchase });
 });
 
-module.exports = { list, getById, create, cancel, recordPayment };
+module.exports = { list, getById, create, update, cancel, recordPayment };

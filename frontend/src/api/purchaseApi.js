@@ -15,6 +15,11 @@ async function create(payload) {
   return data.data;
 }
 
+async function update(id, payload) {
+  const { data } = await axiosInstance.put(`/purchases/${id}`, payload);
+  return data.data;
+}
+
 async function cancel(id) {
   const { data } = await axiosInstance.post(`/purchases/${id}/cancel`);
   return data.data;
@@ -25,4 +30,4 @@ async function recordPayment(id, payload) {
   return data.data;
 }
 
-export default { list, getById, create, cancel, recordPayment };
+export default { list, getById, create, update, cancel, recordPayment };

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useForm, useFieldArray, useWatch, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Trash2, Eye, IndianRupee, ShoppingCart } from "lucide-react";
+import { Plus, Trash2, Eye, Pencil, IndianRupee, ShoppingCart } from "lucide-react";
 import purchaseApi from "../api/purchaseApi";
 import supplierApi from "../api/supplierApi";
 import productApi from "../api/productApi";
@@ -62,6 +62,7 @@ export default function Purchases() {
   const [suppliers, setSuppliers] = useState([]);
   const [products, setProducts] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState(null);
   const [detail, setDetail] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [formError, setFormError] = useState("");
@@ -127,6 +128,7 @@ export default function Purchases() {
 
   async function openCreate() {
     setFormError("");
+    setEditingId(null);
     const [supplierRes, productRes] = await Promise.all([
       supplierApi.list({ limit: 100, isActive: true }),
       productApi.list({ limit: 200, isActive: true }),
@@ -146,6 +148,34 @@ export default function Purchases() {
     setModalOpen(true);
   }
 
+  async function openEdit(row) {
+    setFormError("");
+    const [supplierRes, productRes, purchase] = await Promise.all([
+      supplierApi.list({ limit: 100, isActive: true }),
+      productApi.list({ limit: 200, isActive: true }),
+      purchaseApi.getById(row.id),
+    ]);
+    setSuppliers(supplierRes.data);
+    setProducts(productRes.data);
+    setEditingId(purchase.id);
+    reset({
+      supplierId: purchase.supplierId || "",
+      invoiceNumber: purchase.invoiceNumber || "",
+      paymentMethod: purchase.paymentMethod,
+      discount: Number(purchase.discount),
+      additionalCost: Number(purchase.additionalCost),
+      paidAmount: Number(purchase.paidAmount),
+      notes: purchase.notes || "",
+      items: purchase.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        unitCost: Number(item.unitCost),
+      })),
+    });
+    setDetail(null);
+    setModalOpen(true);
+  }
+
   async function onSubmit(values) {
     setFormError("");
     try {
@@ -153,13 +183,19 @@ export default function Purchases() {
         ...values,
         supplierId: values.supplierId || undefined,
       };
-      await purchaseApi.create(payload);
-      showToast("Purchase completed successfully");
+      if (editingId) {
+        await purchaseApi.update(editingId, payload);
+        showToast("Purchase updated successfully");
+      } else {
+        await purchaseApi.create(payload);
+        showToast("Purchase completed successfully");
+      }
       setModalOpen(false);
+      setEditingId(null);
       setPage(1);
       load();
     } catch (err) {
-      setFormError(err.response?.data?.message || "Failed to create purchase");
+      setFormError(err.response?.data?.message || `Failed to ${editingId ? "update" : "create"} purchase`);
     }
   }
 
@@ -221,9 +257,12 @@ export default function Purchases() {
         <div className="flex items-center gap-1">
           <IconButton icon={Eye} title="View" onClick={() => openDetail(row)} />
           {row.status === "COMPLETED" && (
-            <button onClick={() => setCancelTarget(row)} className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50">
-              Cancel
-            </button>
+            <>
+              <IconButton icon={Pencil} title="Edit" onClick={() => openEdit(row)} />
+              <button onClick={() => setCancelTarget(row)} className="rounded-md px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50">
+                Cancel
+              </button>
+            </>
           )}
         </div>
       ),
@@ -268,7 +307,15 @@ export default function Purchases() {
         )}
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="New Purchase" maxWidth="max-w-4xl">
+      <Modal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setEditingId(null);
+        }}
+        title={editingId ? "Edit Purchase" : "New Purchase"}
+        maxWidth="max-w-4xl"
+      >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <FormField label="Supplier (optional)">
@@ -378,11 +425,18 @@ export default function Purchases() {
           {formError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{formError}</p>}
 
           <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setModalOpen(false);
+                setEditingId(null);
+              }}
+            >
               Cancel
             </Button>
             <Button type="submit" loading={isSubmitting}>
-              Complete Purchase
+              {editingId ? "Save Changes" : "Complete Purchase"}
             </Button>
           </div>
         </form>
@@ -420,9 +474,14 @@ export default function Purchases() {
                 </Button>
               )}
               {detail.status === "COMPLETED" && (
-                <Button variant="danger" onClick={() => setCancelTarget(detail)}>
-                  Cancel Purchase
-                </Button>
+                <>
+                  <Button variant="secondary" icon={Pencil} onClick={() => openEdit(detail)}>
+                    Edit
+                  </Button>
+                  <Button variant="danger" onClick={() => setCancelTarget(detail)}>
+                    Cancel Purchase
+                  </Button>
+                </>
               )}
             </div>
           </div>
