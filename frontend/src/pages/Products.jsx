@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Plus, Pencil, History, Search, PackageSearch, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
+import { Plus, Pencil, History, Search, X, PackageSearch, ArrowUpCircle, ArrowDownCircle } from "lucide-react";
 import productApi from "../api/productApi";
 import categoryApi from "../api/categoryApi";
 import Table from "../components/Table";
@@ -53,6 +53,7 @@ export default function Products() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(20);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [stockStatus, setStockStatus] = useState("");
   const [loading, setLoading] = useState(true);
@@ -100,7 +101,7 @@ export default function Products() {
       const res = await productApi.list({
         page,
         limit,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         categoryId: categoryId || undefined,
         stockStatus: stockStatus || undefined,
       });
@@ -118,9 +119,17 @@ export default function Products() {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1);
+      setDebouncedSearch(search);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
     loadProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, categoryId, stockStatus]);
+  }, [page, limit, debouncedSearch, categoryId, stockStatus]);
 
   function handlePageSizeChange(size) {
     setLimit(size);
@@ -255,14 +264,24 @@ export default function Products() {
       />
 
       <div className="mt-4 flex flex-wrap gap-3">
-        <div className="w-64">
+        <div className="relative w-64">
           <Input
             icon={Search}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && (setPage(1), loadProducts())}
             placeholder="Search name, SKU, barcode, brand..."
+            className={search ? "pr-8" : ""}
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
         </div>
         <div className="w-48">
           <Select value={categoryId} onChange={(e) => (setPage(1), setCategoryId(e.target.value))}>
