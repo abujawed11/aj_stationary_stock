@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Search } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 
-export default function ProductSearchSelect({ products, value, onChange, placeholder = "Search product..." }) {
+export default function ProductSearchSelect({ products, value, onChange, onCreateNew, placeholder = "Search product..." }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState(null);
@@ -65,6 +65,11 @@ export default function ProductSearchSelect({ products, value, onChange, placeho
     setOpen(false);
   }
 
+  function handleCreateNew() {
+    setOpen(false);
+    onCreateNew(query.trim());
+  }
+
   return (
     <div ref={wrapperRef} className="relative">
       <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
@@ -88,6 +93,16 @@ export default function ProductSearchSelect({ products, value, onChange, placeho
             className="z-999 max-h-56 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg"
           >
             {filtered.length === 0 && <p className="px-3 py-2 text-sm text-slate-400">No products found</p>}
+            {onCreateNew && (
+              <button
+                type="button"
+                onClick={handleCreateNew}
+                className="flex w-full items-center gap-1.5 border-b border-slate-100 px-3 py-2 text-left text-sm font-medium text-brand-600 hover:bg-brand-50"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {q ? `Create new product "${query.trim()}"` : "Create new product"}
+              </button>
+            )}
             {filtered.slice(0, 50).map((p) => (
               <button
                 type="button"
