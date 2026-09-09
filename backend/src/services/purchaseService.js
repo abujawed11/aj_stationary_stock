@@ -2,8 +2,16 @@ const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { getPagination, buildMeta } = require("../utils/pagination");
 const { generateDocumentNumber } = require("../utils/documentNumber");
-const { multiply, add, subtract, toNumber } = require("../utils/money");
+const { multiply, add, subtract, divide, toNumber } = require("../utils/money");
 const { increaseStock, decreaseStock, recordMovement } = require("./stockMovementService");
+
+// Moving weighted-average cost: blends the price paid on this purchase into the
+// existing cost basis, weighted by how much stock was on hand before it arrived.
+// With no prior stock, the new unit cost fully replaces the average.
+function weightedAverageCost(stockBefore, oldPrice, quantity, unitCost) {
+  if (stockBefore === 0) return unitCost;
+  return toNumber(divide(add(multiply(stockBefore, oldPrice), multiply(quantity, unitCost)), stockBefore + quantity));
+}
 
 async function list(query) {
   const { page, limit, skip } = getPagination(query);
@@ -118,11 +126,16 @@ async function create(data, userId) {
       include: { items: true, supplier: true },
     });
 
+    const priceMap = new Map(products.map((p) => [p.id, Number(p.purchasePrice)]));
+
     for (const item of itemsWithTotals) {
       const { stockBefore, stockAfter } = await increaseStock(tx, item.productId, item.quantity);
-      // Cost basis is refreshed from the latest actual purchase price paid,
-      // rather than a manually-guessed value on the product itself.
-      await tx.product.update({ where: { id: item.productId }, data: { purchasePrice: item.unitCost } });
+      // Cost basis is a moving weighted average of stock on hand, not just the
+      // latest price paid, so profit/valuation reflect the true blended cost.
+      const oldPrice = priceMap.get(item.productId) ?? 0;
+      const newPrice = weightedAverageCost(stockBefore, oldPrice, item.quantity, item.unitCost);
+      priceMap.set(item.productId, newPrice);
+      await tx.product.update({ where: { id: item.productId }, data: { purchasePrice: newPrice } });
       await recordMovement(tx, {
         productId: item.productId,
         movementType: "PURCHASE",
@@ -229,9 +242,14 @@ async function update(id, data, userId) {
       include: { items: true, supplier: true },
     });
 
+    const priceMap = new Map(products.map((p) => [p.id, Number(p.purchasePrice)]));
+
     for (const item of itemsWithTotals) {
       const { stockBefore, stockAfter } = await increaseStock(tx, item.productId, item.quantity);
-      await tx.product.update({ where: { id: item.productId }, data: { purchasePrice: item.unitCost } });
+      const oldPrice = priceMap.get(item.productId) ?? 0;
+      const newPrice = weightedAverageCost(stockBefore, oldPrice, item.quantity, item.unitCost);
+      priceMap.set(item.productId, newPrice);
+      await tx.product.update({ where: { id: item.productId }, data: { purchasePrice: newPrice } });
       await recordMovement(tx, {
         productId: item.productId,
         movementType: "PURCHASE",

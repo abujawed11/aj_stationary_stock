@@ -18,8 +18,12 @@ function subtract(a, b) {
   return toDecimal(a).sub(toDecimal(b));
 }
 
+function divide(a, b) {
+  return toDecimal(a).div(toDecimal(b));
+}
+
 function toNumber(decimal) {
   return Number(toDecimal(decimal).toFixed(2));
 }
 
-module.exports = { Decimal, toDecimal, multiply, add, subtract, toNumber };
+module.exports = { Decimal, toDecimal, multiply, add, subtract, divide, toNumber };
