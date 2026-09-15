@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import saleApi from "../api/saleApi";
 import salesReturnApi from "../api/salesReturnApi";
 import productApi from "../api/productApi";
+import categoryApi from "../api/categoryApi";
 import Table from "../components/Table";
 import Pagination from "../components/Pagination";
 import Modal from "../components/Modal";
@@ -26,6 +27,16 @@ import { selectOnFocus } from "../utils/formHelpers";
 import { useToast } from "../context/ToastContext";
 
 const PAYMENT_METHODS = ["CASH", "UPI", "BANK_TRANSFER", "OTHER"];
+const UNITS = ["PIECE", "PACKET", "BOX", "DOZEN", "REAM", "SET", "BOTTLE", "ROLL"];
+
+const quickProductSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  categoryId: z.coerce.number().int().positive("Category is required"),
+  brand: z.string().optional(),
+  unit: z.enum(UNITS),
+  sellingPrice: z.coerce.number().nonnegative("Cannot be negative"),
+  minimumStock: z.coerce.number().int().nonnegative().optional().default(0),
+});
 
 const saleSchema = z.object({
   customerName: z.string().optional(),
@@ -68,7 +79,10 @@ export default function Sales() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
+  const [quickCreateIndex, setQuickCreateIndex] = useState(null);
+  const [quickCreateError, setQuickCreateError] = useState("");
   const [detail, setDetail] = useState(null);
   const [cancelTarget, setCancelTarget] = useState(null);
   const [formError, setFormError] = useState("");
@@ -99,6 +113,16 @@ export default function Sales() {
       paidAmount: 0,
       items: [{ productId: "", quantity: 1, sellingPrice: 0 }],
     },
+  });
+
+  const {
+    register: registerQuickProduct,
+    handleSubmit: handleQuickProductSubmit,
+    reset: resetQuickProduct,
+    formState: { errors: quickProductErrors, isSubmitting: isQuickProductSubmitting },
+  } = useForm({
+    resolver: zodResolver(quickProductSchema),
+    defaultValues: { name: "", categoryId: "", brand: "", unit: "PIECE", sellingPrice: 0, minimumStock: 0 },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
@@ -148,8 +172,12 @@ export default function Sales() {
 
   async function openCreate() {
     setFormError("");
-    const productRes = await productApi.list({ limit: 200, isActive: true });
+    const [productRes, categoryRes] = await Promise.all([
+      productApi.list({ limit: 200, isActive: true }),
+      categoryApi.list({ limit: 100, isActive: true }),
+    ]);
     setProducts(productRes.data);
+    setCategories(categoryRes.data);
     reset({
       customerName: "",
       customerPhone: "",
@@ -165,6 +193,36 @@ export default function Sales() {
     const product = products.find((p) => String(p.id) === String(productId));
     if (product) {
       setValue(`items.${index}.sellingPrice`, Number(product.sellingPrice));
+    }
+  }
+
+  function openQuickCreate(index, prefillName) {
+    setQuickCreateError("");
+    resetQuickProduct({
+      name: prefillName || "",
+      categoryId: categories[0]?.id || "",
+      brand: "",
+      unit: "PIECE",
+      sellingPrice: 0,
+      minimumStock: 0,
+    });
+    setQuickCreateIndex(index);
+  }
+
+  async function submitQuickProduct(values) {
+    setQuickCreateError("");
+    try {
+      const created = await productApi.create({
+        ...values,
+        brand: values.brand || undefined,
+      });
+      setProducts((prev) => [...prev, created]);
+      setValue(`items.${quickCreateIndex}.productId`, created.id, { shouldValidate: true });
+      setValue(`items.${quickCreateIndex}.sellingPrice`, Number(created.sellingPrice));
+      setQuickCreateIndex(null);
+      showToast("Product created");
+    } catch (err) {
+      setQuickCreateError(err.response?.data?.message || "Failed to create product");
     }
   }
 
@@ -416,6 +474,7 @@ export default function Sales() {
                             controllerField.onChange(id);
                             handleProductChange(index, id);
                           }}
+                          onCreateNew={(query) => openQuickCreate(index, query)}
                         />
                       )}
                     />
@@ -667,6 +726,62 @@ export default function Sales() {
             {returnRows.length > 0 && <Button onClick={submitReturn}>Record Return</Button>}
           </div>
         </div>
+      </Modal>
+
+      <Modal open={quickCreateIndex !== null} onClose={() => setQuickCreateIndex(null)} title="Create New Product" maxWidth="max-w-md">
+        <form onSubmit={handleQuickProductSubmit(submitQuickProduct)} className="space-y-4">
+          <FormField label="Name" error={quickProductErrors.name}>
+            <Input {...registerQuickProduct("name")} error={quickProductErrors.name} autoFocus />
+          </FormField>
+          <FormField label="Category" error={quickProductErrors.categoryId}>
+            <Select {...registerQuickProduct("categoryId")} error={quickProductErrors.categoryId}>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
+          </FormField>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Brand (optional)">
+              <Input {...registerQuickProduct("brand")} />
+            </FormField>
+            <FormField label="Unit">
+              <Select {...registerQuickProduct("unit")}>
+                {UNITS.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField label="Selling Price" error={quickProductErrors.sellingPrice}>
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                prefix="₹"
+                onFocus={selectOnFocus}
+                error={quickProductErrors.sellingPrice}
+                {...registerQuickProduct("sellingPrice")}
+              />
+            </FormField>
+            <FormField label="Minimum Stock">
+              <Input type="number" min="0" onFocus={selectOnFocus} {...registerQuickProduct("minimumStock")} />
+            </FormField>
+          </div>
+
+          {quickCreateError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{quickCreateError}</p>}
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setQuickCreateIndex(null)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={isQuickProductSubmitting}>
+              Create &amp; Select
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       <ConfirmDialog
