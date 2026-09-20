@@ -16,6 +16,7 @@ const createProductSchema = z.object({
   sellingPrice: z.coerce.number().nonnegative("Selling price cannot be negative"),
   mrp: z.preprocess(emptyToUndefined, z.coerce.number().nonnegative().optional()),
   minimumStock: z.coerce.number().int().nonnegative().optional().default(0),
+  openingStock: z.coerce.number().int().nonnegative().optional().default(0),
 });
 
 const updateProductSchema = createProductSchema.partial();

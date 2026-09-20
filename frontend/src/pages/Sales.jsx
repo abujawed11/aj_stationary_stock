@@ -36,6 +36,7 @@ const quickProductSchema = z.object({
   unit: z.enum(UNITS),
   sellingPrice: z.coerce.number().nonnegative("Cannot be negative"),
   minimumStock: z.coerce.number().int().nonnegative().optional().default(0),
+  openingStock: z.coerce.number().int().nonnegative().optional().default(0),
 });
 
 const saleSchema = z.object({
@@ -122,7 +123,7 @@ export default function Sales() {
     formState: { errors: quickProductErrors, isSubmitting: isQuickProductSubmitting },
   } = useForm({
     resolver: zodResolver(quickProductSchema),
-    defaultValues: { name: "", categoryId: "", brand: "", unit: "PIECE", sellingPrice: 0, minimumStock: 0 },
+    defaultValues: { name: "", categoryId: "", brand: "", unit: "PIECE", sellingPrice: 0, minimumStock: 0, openingStock: 0 },
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
@@ -205,6 +206,7 @@ export default function Sales() {
       unit: "PIECE",
       sellingPrice: 0,
       minimumStock: 0,
+      openingStock: 0,
     });
     setQuickCreateIndex(index);
   }
@@ -769,7 +771,19 @@ export default function Sales() {
             <FormField label="Minimum Stock">
               <Input type="number" min="0" onFocus={selectOnFocus} {...registerQuickProduct("minimumStock")} />
             </FormField>
+            <FormField label="Opening Stock" error={quickProductErrors.openingStock}>
+              <Input
+                type="number"
+                min="0"
+                onFocus={selectOnFocus}
+                error={quickProductErrors.openingStock}
+                {...registerQuickProduct("openingStock")}
+              />
+            </FormField>
           </div>
+          <p className="text-xs text-slate-500">
+            Enter how many units are currently in stock so this product can be sold right away.
+          </p>
 
           {quickCreateError && <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{quickCreateError}</p>}
 

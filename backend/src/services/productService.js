@@ -1,6 +1,7 @@
 const prisma = require("../config/prisma");
 const ApiError = require("../utils/ApiError");
 const { getPagination, buildMeta } = require("../utils/pagination");
+const stockAdjustmentService = require("./stockAdjustmentService");
 
 const SORTABLE_FIELDS = ["name", "sku", "currentStock", "sellingPrice", "purchasePrice", "createdAt", "updatedAt"];
 
@@ -76,14 +77,16 @@ async function getById(id) {
   return product;
 }
 
-async function create(data) {
-  const category = await prisma.category.findUnique({ where: { id: data.categoryId } });
+async function create(data, userId) {
+  const { openingStock, ...productData } = data;
+
+  const category = await prisma.category.findUnique({ where: { id: productData.categoryId } });
   if (!category) {
     throw new ApiError(400, "Category not found");
   }
 
-  if (data.barcode) {
-    const existingBarcode = await prisma.product.findUnique({ where: { barcode: data.barcode } });
+  if (productData.barcode) {
+    const existingBarcode = await prisma.product.findUnique({ where: { barcode: productData.barcode } });
     if (existingBarcode) {
       throw new ApiError(409, "Barcode already exists");
     }
@@ -91,15 +94,31 @@ async function create(data) {
 
   const sku = await generateSku();
 
-  return prisma.product.create({
+  const product = await prisma.product.create({
     data: {
-      ...data,
+      ...productData,
       sku,
       purchasePrice: 0,
       currentStock: 0,
-      minimumStock: data.minimumStock ?? 0,
+      minimumStock: productData.minimumStock ?? 0,
     },
   });
+
+  if (openingStock > 0) {
+    await stockAdjustmentService.create(
+      {
+        productId: product.id,
+        adjustmentType: "OPENING_STOCK",
+        direction: "IN",
+        quantity: openingStock,
+        reason: "Opening stock recorded at product creation",
+      },
+      userId
+    );
+    return getById(product.id);
+  }
+
+  return product;
 }
 
 async function update(id, data) {

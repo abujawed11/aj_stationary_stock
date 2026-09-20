@@ -13,7 +13,7 @@ const getById = asyncHandler(async (req, res) => {
 });
 
 const create = asyncHandler(async (req, res) => {
-  const product = await productService.create(req.body);
+  const product = await productService.create(req.body, req.user.id);
   sendSuccess(res, { statusCode: 201, message: "Product created", data: product });
 });
 
